@@ -3,13 +3,68 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import PathFinder from "geojson-path-finder";
+import * as turf from "@turf/turf";
+import { addMapLayers } from "./mapLayers";
+import BottomMenu from "./components/BottomMenu";
+
+interface FeatureProperties {
+  highway?: string;
+  foot?: string;
+  [key: string]: any;
+}
 
 export default function Map() {
   const mapContainer = useRef(null);
   const mapRef = useRef<maplibregl.Map>(null);
-  const [hoveredFeature, setHoveredFeature] = useState(null);
+  const dataRef = useRef<any>(null);
+  const pathfinderRef = useRef<PathFinder<any, FeatureProperties> | null>(null);
+  const [hoveredFeature, setHoveredFeature] = useState<FeatureProperties | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [lngLat, setLngLat] = useState({ lng: 0, lat: 0 });
+  const [isStepFree, setIsStepFree] = useState(false);
+
+  const calculatePath = () => {
+    if (!mapRef.current || !pathfinderRef.current) return;
+
+    const start = turf.point([-122.1290835, 37.3615535]);
+    const end = turf.point([-122.1235467, 37.3615772]);
+    const path = pathfinderRef.current.findPath(start, end);
+
+    // Remove existing route layer if it exists
+    if (mapRef.current.getLayer('route-line')) {
+      mapRef.current.removeLayer('route-line');
+    }
+    if (mapRef.current.getSource('route')) {
+      mapRef.current.removeSource('route');
+    }
+
+    // Add new route
+    if (path) {
+      mapRef.current.addSource("route", {
+        type: "geojson",
+        data: {
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates: path.path,
+          },
+          properties: {}
+        },
+      });
+
+      mapRef.current.addLayer({
+        id: 'route-line',
+        type: 'line',
+        source: 'route',
+        paint: {
+          'line-color': '#ffff00',
+          'line-width': 8,
+          'line-opacity': 0.7
+        }
+      });
+    }
+  };
 
   useEffect(() => {
     if (mapRef.current) {
@@ -17,9 +72,9 @@ export default function Map() {
     }
 
     const map = new maplibregl.Map({
-      container: mapContainer.current,
+      container: mapContainer.current as any,
       style:
-        "https://api.maptiler.com/maps/streets-v2/style.json?key=IB3MIEFaSnwKWw8vcwGF",
+        "https://api.maptiler.com/maps/basic-v2/style.json?key=IB3MIEFaSnwKWw8vcwGF",
       center: [-122.128, 37.3613], // Longitude, latitude
       zoom: 16,
       maxBounds: [
@@ -32,215 +87,30 @@ export default function Map() {
     mapRef.current = map;
 
     map.on("load", () => {
-      console.log(map.getStyle().layers);
-      map.setLayoutProperty("Park", "visibility", "visible");
-      map.setLayerZoomRange("Park", 0, 24);
       fetch("/foothill.json")
         .then((res) => res.json())
         .then((data) => {
-          map.addSource("foothill", {
-            type: "geojson",
-            data: data,
+          dataRef.current = data;
+          
+          // Create pathfinder instance
+          const pathfinder = new PathFinder<any, FeatureProperties>(data, {
+            weight: (a, b, properties: FeatureProperties) => {
+              if (properties.highway === "steps") {
+                return isStepFree ? 1000 : 2; // Make steps very expensive if step-free is enabled
+              }
+              else if (properties.highway === "footway" || properties.foot === "yes") {
+                return 1;
+              }
+              return 100;
+            }
           });
+          pathfinderRef.current = pathfinder;
 
-          map.addLayer({
-            id: "foothill-college",
-            type: "fill",
-            source: "foothill",
-            paint: {
-              "fill-color": "#89cc9b",
-              "fill-opacity": 1.0,
-            },
-            filter: ["==", ["get", "name"], "Foothill College"],
-          });
-
-          map.addLayer({
-            id: "buildings",
-            type: "fill",
-            source: "foothill",
-            paint: {
-              "fill-color": "#89a9cc",
-              "fill-opacity": 1.0,
-            },
-            filter: ["==", ["get", "building"], "college"],
-          });
-
-          map.addLayer({
-            id: "lots",
-            type: "fill",
-            source: "foothill",
-            paint: {
-              "fill-color": "#898ccc",
-              "fill-opacity": 1.0,
-            },
-            filter: ["==", ["get", "amenity"], "parking"],
-          });
-
-          map.addLayer({
-            id: "other-poly",
-            type: "fill",
-            source: "foothill",
-            paint: {
-              "fill-color": "#89a9cc",
-              "fill-opacity": 0.5,
-            },
-            filter: [
-                "all",
-                ["!=", ["get", "name"], "Foothill College"],
-                ["!=", ["get", "amenity"], "parking"],
-                ["!=", ["get", "building"], "college"],
-                ["==", ["geometry-type"], "Polygon"]
-            ],
-          });
-
-          map.addLayer({
-            id: "waterways",
-            type: "line",
-            source: "foothill",
-            paint: {
-              "line-color": "#4b50d6",
-              "line-width": 8,
-            },
-            filter: [
-              "all",
-              ["==", ["geometry-type"], "LineString"],
-              ["has", "waterway"]
-            ],
-          });
-
-          map.addLayer({
-            id: "footways",
-            type: "line",
-            source: "foothill",
-            paint: {
-              "line-color": "#cc8989",
-              "line-width": 6,
-            },
-            filter: [
-              "all",
-              ["==", ["geometry-type"], "LineString"],
-              ["any",
-                ["==", ["get", "highway"], "footway"],
-                ["==", ["get", "foot"], "yes"]
-              ],
-            ],
-          });
-
-          map.addLayer({
-            id: "steps-bg",
-            type: "line",
-            source: "foothill",
-            paint: {
-              "line-color": "#FF8989",
-              "line-width": 6,
-            },
-            filter: [
-              "all",
-              ["==", ["geometry-type"], "LineString"],
-              ["==", ["get", "highway"], "steps"],
-            ],
-          });
-
-          map.addLayer({
-            id: "steps",
-            type: "line",
-            source: "foothill",
-            paint: {
-              "line-color": "#cc8989",
-              "line-width": 6,
-              'line-dasharray': [0.5, 0.5]
-            },
-            filter: [
-              "all",
-              ["==", ["geometry-type"], "LineString"],
-              ["==", ["get", "highway"], "steps"],
-            ],
-        });
-
-          map.addLayer({
-            id: "roads",
-            type: "line",
-            source: "foothill",
-            paint: {
-              "line-color": "#bae6de",
-              "line-width": 8,
-            },
-            filter: [
-              "all",
-              ["==", ["geometry-type"], "LineString"],
-              ["==", ["get", "highway"], "service"],
-            ],
-        });
-
-        //   map.addLayer({
-        //     id: "other-lines",
-        //     type: "line",
-        //     source: "foothill",
-        //     paint: {
-        //       "line-color": "#FF00FF",
-        //       "line-width": 4,
-        //     },
-        //     filter: [
-        //       "all",
-        //       ["==", ["geometry-type"], "LineString"],
-        //       ["!=", ["get", "highway"], "footway"],
-        //       ["!=", ["get", "foot"], "yes"],
-        //       ["!=", ["get", "highway"], "steps"],
-        //       ["!", ["has", "waterway"]],
-        //       ["!=", ["get", "highway"], "service"]
-        //     ],
-        //   });
-
-          map.addLayer({
-            id: 'building-labels',
-            type: 'symbol',
-            source: 'foothill',
-            layout: {
-              'text-field': ['get', 'name'],
-              'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-              'text-size': 12,
-              'text-allow-overlap': false
-            },
-            paint: {
-              'text-color': '#333'
-            },
-            filter: [
-                "all",
-                ["!=", ["get", "name"], "Foothill College"],
-                ['==', ['geometry-type'], 'Polygon']
-            ]
-        });
-
-          map.addLayer({
-            id: 'stair-labels',
-            type: 'symbol',
-            source: 'foothill',
-            layout: {
-              'text-field': "stairs",
-              'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-              'text-size': 12,
-              'text-allow-overlap': false
-            },
-            paint: {
-              'text-color': '#333'
-            },
-            filter: [
-                "all",
-                ["==", ["geometry-type"], "LineString"],
-                ["==", ["get", "highway"], "steps"],
-              ],
-        });
-
-          //   map.addLayer({
-          //     id: "points",
-          //     type: "circle",
-          //     source: "foothill",
-          //     paint: {
-          //       "circle-radius": 6,
-          //       "circle-color": "#007cbf",
-          //     },
-          //     filter: ["==", "$type", "Point"],
-          //   });
+          // Add all map layers
+          addMapLayers(map, data);
+          
+          // Calculate initial path
+          calculatePath();
         });
     });
 
@@ -250,7 +120,7 @@ export default function Map() {
 
       const features = map.queryRenderedFeatures(e.point);
       if (features.length > 0) {
-        setHoveredFeature(features[0].properties);
+        setHoveredFeature(features[0].properties as FeatureProperties);
         setMousePos({
           x: e.originalEvent.clientX,
           y: e.originalEvent.clientY,
@@ -266,7 +136,28 @@ export default function Map() {
     });
 
     return () => map.remove(); // Cleanup on unmount
-  }, []);
+  }, []); // Removed isStepFree from dependencies
+
+  // Effect to recalculate path when step-free option changes
+  useEffect(() => {
+    if (!pathfinderRef.current) return;
+
+    // Update pathfinder weights
+    pathfinderRef.current = new PathFinder<any, FeatureProperties>(dataRef.current, {
+      weight: (a, b, properties: FeatureProperties) => {
+        if (properties.highway === "steps") {
+          return isStepFree ? 1000 : 2;
+        }
+        else if (properties.highway === "footway" || properties.foot === "yes") {
+          return 1;
+        }
+        return 100;
+      }
+    });
+
+    // Recalculate path
+    calculatePath();
+  }, [isStepFree]);
 
   return (
     <>
@@ -299,7 +190,7 @@ export default function Map() {
         >
           {Object.entries(hoveredFeature).map(([key, value]) => (
             <div key={key}>
-              <strong>{key}</strong>: {value.toString()}
+              <strong>{key}</strong>: {value?.toString()}
             </div>
           ))}
           <div>
@@ -310,6 +201,8 @@ export default function Map() {
           </div>
         </div>
       )}
+
+      <BottomMenu isStepFree={isStepFree} onStepFreeChange={setIsStepFree} />
     </>
   );
 }
