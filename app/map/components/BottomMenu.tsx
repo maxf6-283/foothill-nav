@@ -1,21 +1,49 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { locations } from '../locations';
 
 interface BottomMenuProps {
   isStepFree: boolean;
   onStepFreeChange: (value: boolean) => void;
+  onDestinationChange: (coordinates: [number, number] | null) => void;
 }
 
-export default function BottomMenu({ isStepFree, onStepFreeChange }: BottomMenuProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+export default function BottomMenu({ isStepFree, onStepFreeChange, onDestinationChange }: BottomMenuProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [selectedOption, setSelectedOption] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const options = [
-    { value: '', label: 'Select a destination...' },
-    { value: 'library', label: 'Library' },
-    { value: 'cafeteria', label: 'Cafeteria' },
-    { value: 'parking', label: 'Parking Lot' },
-    { value: 'classroom', label: 'Classroom Building' },
-  ];
+  const handleDestinationChange = (value: string) => {
+    setSelectedOption(value);
+    setSearchQuery(value);
+    const location = locations.find(loc => loc.name === value);
+    onDestinationChange(location ? location.coordinates : null);
+    setIsDropdownOpen(false);
+  };
+
+  const filteredLocations = locations.filter(location =>
+    location.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (isDropdownOpen && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isDropdownOpen]);
 
   return (
     <div
@@ -42,7 +70,7 @@ export default function BottomMenu({ isStepFree, onStepFreeChange }: BottomMenuP
           border: 'none',
           cursor: 'pointer',
           padding: '5px',
-          transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+          transform: isExpanded ? 'rotate(0deg)' : 'rotate(180deg)',
           transition: 'transform 0.3s ease-in-out',
           color: '#333',
         }}
@@ -73,6 +101,7 @@ export default function BottomMenu({ isStepFree, onStepFreeChange }: BottomMenuP
           <div>
             <h2 style={{ 
               marginBottom: '20px',
+              marginTop: '20px',
               color: '#333',
               fontSize: '1.5rem',
               fontWeight: '600'
@@ -92,27 +121,104 @@ export default function BottomMenu({ isStepFree, onStepFreeChange }: BottomMenuP
               >
                 Select Destination
               </label>
-              <select
-                id="destination"
-                value={selectedOption}
-                onChange={(e) => setSelectedOption(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  borderRadius: '4px',
-                  border: '1px solid #ccc',
-                  backgroundColor: 'white',
-                  color: '#333',
-                  fontSize: '1rem',
-                  cursor: 'pointer',
-                }}
-              >
-                {options.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              <div ref={dropdownRef} style={{ position: 'relative' }}>
+                <div
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '4px',
+                    border: '1px solid #ccc',
+                    backgroundColor: 'white',
+                    color: '#333',
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setIsDropdownOpen(true);
+                    }}
+                    placeholder="Search destinations..."
+                    style={{
+                      width: '100%',
+                      border: 'none',
+                      outline: 'none',
+                      fontSize: '1rem',
+                      backgroundColor: 'transparent',
+                      cursor: 'pointer',
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsDropdownOpen(true);
+                    }}
+                  />
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{
+                      transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s ease-in-out',
+                      flexShrink: 0,
+                      marginLeft: '8px',
+                    }}
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </div>
+                {isDropdownOpen && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      backgroundColor: 'white',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px',
+                      marginTop: '4px',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                      zIndex: 1001,
+                      color: 'black',
+                    }}
+                  >
+                    <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                      {filteredLocations.map((location) => (
+                        <div
+                          key={location.name}
+                          onClick={() => handleDestinationChange(location.name)}
+                          style={{
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            backgroundColor: selectedOption === location.name ? '#f0f0f0' : 'transparent',
+                          }}
+                          className="hover:bg-gray-100"
+                        >
+                          {location.name}
+                        </div>
+                      ))}
+                      {filteredLocations.length === 0 && (
+                        <div style={{ padding: '8px 12px', color: '#666' }}>
+                          No destinations found
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div style={{ marginBottom: '20px' }}>

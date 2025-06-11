@@ -23,12 +23,15 @@ export default function Map() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [lngLat, setLngLat] = useState({ lng: 0, lat: 0 });
   const [isStepFree, setIsStepFree] = useState(false);
+  const [destination, setDestination] = useState<[number, number] | null>(null);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   const calculatePath = () => {
-    if (!mapRef.current || !pathfinderRef.current) return;
-
-    const start = turf.point([-122.1290835, 37.3615535]);
-    const end = turf.point([-122.1235467, 37.3615772]);
+    if (!mapRef.current || !pathfinderRef.current || !destination) return;
+    
+    const start = userLocation ? turf.point(userLocation) : turf.point([-122.1290835, 37.3615535]); // Use user location if available
+    const end = turf.point(destination);
     const path = pathfinderRef.current.findPath(start, end);
 
     // Remove existing route layer if it exists
@@ -66,6 +69,44 @@ export default function Map() {
     }
   };
 
+  // Function to update user location marker
+  const updateUserLocationMarker = (coordinates: [number, number]) => {
+    if (!mapRef.current) return;
+
+    // Remove existing user location marker if it exists
+    if (mapRef.current.getLayer('user-location')) {
+      mapRef.current.removeLayer('user-location');
+    }
+    if (mapRef.current.getSource('user-location')) {
+      mapRef.current.removeSource('user-location');
+    }
+
+    // Add new user location marker
+    mapRef.current.addSource('user-location', {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: coordinates
+        },
+        properties: {}
+      }
+    });
+
+    mapRef.current.addLayer({
+      id: 'user-location',
+      type: 'circle',
+      source: 'user-location',
+      paint: {
+        'circle-radius': 8,
+        'circle-color': '#4285F4',
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#ffffff'
+      }
+    });
+  };
+
   useEffect(() => {
     if (mapRef.current) {
       return;
@@ -75,12 +116,11 @@ export default function Map() {
       container: mapContainer.current as any,
       style:
         "https://api.maptiler.com/maps/basic-v2/style.json?key=IB3MIEFaSnwKWw8vcwGF",
-      center: [-122.128, 37.3613], // Longitude, latitude
+      center: [-122.128, 37.3613],
       zoom: 16,
       maxBounds: [
-        // restrict panning bounds
-        [-122.136, 37.357], // southwest corner [lng, lat]
-        [-122.1205, 37.367], // northeast corner [lng, lat]
+        [-122.136, 37.357],
+        [-122.1205, 37.367],
       ],
     });
 
@@ -96,7 +136,7 @@ export default function Map() {
           const pathfinder = new PathFinder<any, FeatureProperties>(data, {
             weight: (a, b, properties: FeatureProperties) => {
               if (properties.highway === "steps") {
-                return isStepFree ? 1000 : 2; // Make steps very expensive if step-free is enabled
+                return isStepFree ? 1000 : 2;
               }
               else if (properties.highway === "footway" || properties.foot === "yes") {
                 return 1;
@@ -108,13 +148,10 @@ export default function Map() {
 
           // Add all map layers
           addMapLayers(map, data);
-          
-          // Calculate initial path
-          calculatePath();
         });
     });
 
-    // 👇 Add mousemove handler to query features
+    // Mouse move handler
     map.on("mousemove", (e) => {
       setLngLat({ lng: e.lngLat.lng, lat: e.lngLat.lat });
 
@@ -130,13 +167,97 @@ export default function Map() {
       }
     });
 
-    // Optional: clear on mouse leave
+    // Clear on mouse leave
     map.on("mouseleave", () => {
       setHoveredFeature(null);
     });
 
-    return () => map.remove(); // Cleanup on unmount
-  }, []); // Removed isStepFree from dependencies
+    return () => map.remove();
+  }, []);
+
+  // Effect to request user location
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser");
+      return;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const newLocation: [number, number] = [
+          position.coords.longitude,
+          position.coords.latitude
+        ];
+        setUserLocation(newLocation);
+        updateUserLocationMarker(newLocation);
+        setLocationError(null); // Clear any previous errors
+      },
+      (error) => {
+        let errorMessage = "Error getting location: ";
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage += "Please allow location access in your browser settings";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage += "Location information is unavailable. Please check your device's location services";
+            break;
+          case error.TIMEOUT:
+            errorMessage += "Location request timed out. Please try again";
+            break;
+          default:
+            errorMessage += error.message || "Unknown error";
+        }
+        setLocationError(errorMessage);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000, // Increased timeout to 10 seconds
+        maximumAge: 0
+      }
+    );
+
+    // Also try to get an immediate position fix
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newLocation: [number, number] = [
+          position.coords.longitude,
+          position.coords.latitude
+        ];
+        setUserLocation(newLocation);
+        updateUserLocationMarker(newLocation);
+        setLocationError(null);
+      },
+      (error) => {
+        // Only set error if we don't already have a location from watchPosition
+        if (!userLocation) {
+          let errorMessage = "Error getting initial location: ";
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage += "Please allow location access in your browser settings";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage += "Location information is unavailable. Please check your device's location services";
+              break;
+            case error.TIMEOUT:
+              errorMessage += "Location request timed out. Please try again";
+              break;
+            default:
+              errorMessage += error.message || "Unknown error";
+          }
+          setLocationError(errorMessage);
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, []);
 
   // Effect to recalculate path when step-free option changes
   useEffect(() => {
@@ -159,6 +280,11 @@ export default function Map() {
     calculatePath();
   }, [isStepFree]);
 
+  // Effect to recalculate path when destination changes
+  useEffect(() => {
+    calculatePath();
+  }, [destination, userLocation]);
+
   return (
     <>
       <div
@@ -170,7 +296,6 @@ export default function Map() {
         }}
       />
 
-      {/* Floating Tooltip */}
       {hoveredFeature && (
         <div
           style={{
@@ -202,7 +327,31 @@ export default function Map() {
         </div>
       )}
 
-      <BottomMenu isStepFree={isStepFree} onStepFreeChange={setIsStepFree} />
+      {locationError && (
+        <div
+          style={{
+            position: "fixed",
+            top: "20px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#ff4444",
+            color: "white",
+            padding: "8px 16px",
+            borderRadius: "4px",
+            fontSize: "14px",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+            zIndex: 1000,
+          }}
+        >
+          {locationError}
+        </div>
+      )}
+
+      <BottomMenu 
+        isStepFree={isStepFree} 
+        onStepFreeChange={setIsStepFree}
+        onDestinationChange={setDestination}
+      />
     </>
   );
 }
