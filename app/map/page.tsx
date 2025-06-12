@@ -24,13 +24,16 @@ export default function Map() {
   const [lngLat, setLngLat] = useState({ lng: 0, lat: 0 });
   const [isStepFree, setIsStepFree] = useState(false);
   const [destination, setDestination] = useState<[number, number] | null>(null);
+  const [startLocation, setStartLocation] = useState<[number, number] | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
 
   const calculatePath = () => {
     if (!mapRef.current || !pathfinderRef.current || !destination) return;
     
-    const start = userLocation ? turf.point(userLocation) : turf.point([-122.1290835, 37.3615535]); // Use user location if available
+    const start = startLocation ? turf.point(startLocation) : 
+                 userLocation ? turf.point(userLocation) : 
+                 turf.point([-122.1290835, 37.3615535]); // Default fallback
     const end = turf.point(destination);
     const path = pathfinderRef.current.findPath(start, end);
 
@@ -280,10 +283,10 @@ export default function Map() {
     calculatePath();
   }, [isStepFree]);
 
-  // Effect to recalculate path when destination changes
+  // Effect to recalculate path when destination or start location changes
   useEffect(() => {
     calculatePath();
-  }, [destination, userLocation]);
+  }, [destination, startLocation, userLocation]);
 
   return (
     <>
@@ -351,6 +354,8 @@ export default function Map() {
         isStepFree={isStepFree} 
         onStepFreeChange={setIsStepFree}
         onDestinationChange={setDestination}
+        onStartLocationChange={setStartLocation}
+        currentLocation={userLocation}
       />
     </>
   );
