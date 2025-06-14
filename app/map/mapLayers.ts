@@ -1,7 +1,7 @@
 import { Map as MapLibreMap } from 'maplibre-gl';
-import { Feature, LineString, Position } from 'geojson';
+import { Feature, LineString, Position, FeatureCollection } from 'geojson';
 
-export const addMapLayers = (map: MapLibreMap, data: any, path?: { path: Position[] }) => {
+export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: { path: Position[] }) => {
   // Add the main source
   map.addSource("foothill", {
     type: "geojson",

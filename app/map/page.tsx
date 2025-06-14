@@ -7,18 +7,19 @@ import PathFinder from "geojson-path-finder";
 import * as turf from "@turf/turf";
 import { addMapLayers } from "./mapLayers";
 import BottomMenu from "./components/BottomMenu";
+import { Feature, FeatureCollection } from "geojson";
 
 interface FeatureProperties {
   highway?: string;
   foot?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export default function Map() {
-  const mapContainer = useRef(null);
+  const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map>(null);
-  const dataRef = useRef<any>(null);
-  const pathfinderRef = useRef<PathFinder<any, FeatureProperties> | null>(null);
+  const dataRef = useRef<FeatureCollection | null>(null);
+  const pathfinderRef = useRef<PathFinder<Feature, FeatureProperties> | null>(null);
   const [hoveredFeature, setHoveredFeature] = useState<FeatureProperties | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [lngLat, setLngLat] = useState({ lng: 0, lat: 0 });
@@ -116,7 +117,7 @@ export default function Map() {
     }
 
     const map = new maplibregl.Map({
-      container: mapContainer.current as any,
+      container: mapContainer.current as HTMLDivElement,
       style:
         "https://api.maptiler.com/maps/basic-v2/style.json?key=IB3MIEFaSnwKWw8vcwGF",
       center: [-122.128, 37.3613],
@@ -136,7 +137,7 @@ export default function Map() {
           dataRef.current = data;
           
           // Create pathfinder instance
-          const pathfinder = new PathFinder<any, FeatureProperties>(data, {
+          const pathfinder = new PathFinder<Feature, FeatureProperties>(data, {
             weight: (a, b, properties: FeatureProperties) => {
               if (properties.highway === "steps") {
                 return isStepFree ? 1000 : 2;
@@ -267,7 +268,7 @@ export default function Map() {
     if (!pathfinderRef.current) return;
 
     // Update pathfinder weights
-    pathfinderRef.current = new PathFinder<any, FeatureProperties>(dataRef.current, {
+    pathfinderRef.current = new PathFinder<Feature, FeatureProperties>(dataRef.current, {
       weight: (a, b, properties: FeatureProperties) => {
         if (properties.highway === "steps") {
           return isStepFree ? 1000 : 2;

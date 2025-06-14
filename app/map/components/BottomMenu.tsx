@@ -211,7 +211,7 @@ export default function BottomMenu({
     if (currentLocation) {
       onStartLocationChange(currentLocation);
     }
-  }, []);
+  });
 
   const handleDestinationChange = (value: string) => {
     setSelectedDestination(value);
