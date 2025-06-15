@@ -15,7 +15,6 @@ function LocationDropdown({
   placeholder, 
   value, 
   onChange,
-  currentLocation,
   includeCurrentLocation = false 
 }: LocationDropdownProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -35,7 +34,7 @@ function LocationDropdown({
     (includeCurrentLocation ? 
       [{
         name: "Current Location",
-        coordinates: currentLocation
+        coordinates: null
       }, ...locations.filter(location =>
         location.name.toLowerCase().includes(searchQuery.toLowerCase())
       )] :
@@ -46,7 +45,7 @@ function LocationDropdown({
     (includeCurrentLocation ? 
       [{
         name: "Current Location",
-        coordinates: currentLocation
+        coordinates: null
       }, ...locations] :
       locations
     );
@@ -192,7 +191,7 @@ interface BottomMenuProps {
   onStepFreeChange: (value: boolean) => void;
   onDestinationChange: (coordinates: [number, number] | null) => void;
   onStartLocationChange: (coordinates: [number, number] | null) => void;
-  currentLocation: [number, number] | null;
+  onGoClick: () => void;
 }
 
 export default function BottomMenu({ 
@@ -200,18 +199,11 @@ export default function BottomMenu({
   onStepFreeChange, 
   onDestinationChange,
   onStartLocationChange,
-  currentLocation
+  onGoClick
 }: BottomMenuProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedDestination, setSelectedDestination] = useState('');
   const [selectedStart, setSelectedStart] = useState('Current Location');
-
-  // Set initial start location to current location
-  useEffect(() => {
-    if (currentLocation) {
-      onStartLocationChange(currentLocation);
-    }
-  });
 
   const handleDestinationChange = (value: string) => {
     setSelectedDestination(value);
@@ -294,7 +286,6 @@ export default function BottomMenu({
               placeholder="Search starting locations..."
               value={selectedStart}
               onChange={handleStartLocationChange}
-              currentLocation={currentLocation}
               includeCurrentLocation={true}
             />
 
@@ -342,6 +333,27 @@ export default function BottomMenu({
                 </p>
               )}
             </div>
+
+            <button
+              onClick={onGoClick}
+              style={{
+                width: '100%',
+                padding: '12px',
+                backgroundColor: '#4CAF50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                marginTop: '20px',
+                transition: 'background-color 0.2s ease-in-out',
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#45a049'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#4CAF50'}
+            >
+              Go
+            </button>
           </div>
         )}
       </div>

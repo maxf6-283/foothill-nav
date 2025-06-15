@@ -28,14 +28,101 @@ export default function Map() {
   const [startLocation, setStartLocation] = useState<[number, number] | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [pathError, setPathError] = useState<string | null>(null);
+
+  // Function to update markers
+  const updateMarkers = () => {
+    if (!mapRef.current) return;
+
+    console.log("RAAA")
+
+    // Remove existing markers if they exist
+    if (mapRef.current.getLayer('start-marker')) {
+      mapRef.current.removeLayer('start-marker');
+    }
+    if (mapRef.current.getSource('start-marker')) {
+      mapRef.current.removeSource('start-marker');
+    }
+    if (mapRef.current.getLayer('end-marker')) {
+      mapRef.current.removeLayer('end-marker');
+    }
+    if (mapRef.current.getSource('end-marker')) {
+      mapRef.current.removeSource('end-marker');
+    }
+
+    // Add start marker if we have a start location
+    const startPoint = startLocation ? startLocation : 
+                      userLocation ? userLocation : null;
+    
+    if (startPoint) {
+      mapRef.current.addSource('start-marker', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: startPoint
+          },
+          properties: {}
+        }
+      });
+
+      mapRef.current.addLayer({
+        id: 'start-marker',
+        type: 'circle',
+        source: 'start-marker',
+        paint: {
+          'circle-radius': 8,
+          'circle-color': '#4CAF50',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+    }
+
+    // Add end marker if we have a destination
+    if (destination) {
+      mapRef.current.addSource('end-marker', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: destination
+          },
+          properties: {}
+        }
+      });
+
+      mapRef.current.addLayer({
+        id: 'end-marker',
+        type: 'circle',
+        source: 'end-marker',
+        paint: {
+          'circle-radius': 8,
+          'circle-color': '#FF4444',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+    }
+  };
 
   const calculatePath = () => {
-    if (!mapRef.current || !pathfinderRef.current || !destination) return;
+    if (!mapRef.current || !pathfinderRef.current || !destination) {
+      setPathError("Please select a destination");
+      return;
+    }
     
+    console.log("calculating path");
     const start = startLocation ? turf.point(startLocation) : 
                  userLocation ? turf.point(userLocation) : 
                  turf.point([-122.1290835, 37.3615535]); // Default fallback
     const end = turf.point(destination);
+    console.log("startLocation", startLocation);
+    console.log("userLocation", userLocation);
+    console.log("start", start);
+    console.log("end", end);
     const path = pathfinderRef.current.findPath(start, end);
 
     // Remove existing route layer if it exists
@@ -48,6 +135,7 @@ export default function Map() {
 
     // Add new route
     if (path) {
+      setPathError(null);
       mapRef.current.addSource("route", {
         type: "geojson",
         data: {
@@ -70,12 +158,18 @@ export default function Map() {
           'line-opacity': 0.7
         }
       });
+
+      // Update markers after successful path calculation
+      updateMarkers();
+    } else {
+      setPathError("No viable path found between the selected locations");
     }
   };
 
   // Function to update user location marker
   const updateUserLocationMarker = (coordinates: [number, number]) => {
     if (!mapRef.current) return;
+    
 
     // Remove existing user location marker if it exists
     if (mapRef.current.getLayer('user-location')) {
@@ -279,15 +373,7 @@ export default function Map() {
         return 100;
       }
     });
-
-    // Recalculate path
-    calculatePath();
   }, [isStepFree]);
-
-  // Effect to recalculate path when destination or start location changes
-  useEffect(() => {
-    calculatePath();
-  }, [destination, startLocation, userLocation]);
 
   return (
     <>
@@ -331,7 +417,7 @@ export default function Map() {
         </div>
       )}
 
-      {locationError && (
+      {(locationError || pathError) && (
         <div
           style={{
             position: "fixed",
@@ -348,6 +434,8 @@ export default function Map() {
           }}
         >
           {locationError}
+          {locationError && pathError && <br />}
+          {pathError}
         </div>
       )}
 
@@ -356,7 +444,10 @@ export default function Map() {
         onStepFreeChange={setIsStepFree}
         onDestinationChange={setDestination}
         onStartLocationChange={setStartLocation}
-        currentLocation={userLocation}
+        onGoClick={() => {
+          calculatePath();
+          console.log("calculated path");
+        }}
       />
     </>
   );
