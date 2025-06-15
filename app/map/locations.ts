@@ -19,5 +19,25 @@ export const locations: Location[] = [
   {
     name: "Classroom Building",
     coordinates: [-122.1275, 37.3625]
+  },
+  {
+    name: "Test",
+    coordinates: [-122.129175, 37.361495]
+  },
+  {
+    name: "Test2",
+    coordinates: [-122.1301, 37.361295]
+  },
+  {
+    name: "Test3",
+    coordinates: [-122.129478, 37.361363]
+  },
+  {
+    name: "Test5",
+    coordinates: [-122.12955, 37.36136439]
+  },
+  {
+    name: "Test4",
+    coordinates: [-122.1304173, 37.36108777]
   }
 ]; 

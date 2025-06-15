@@ -7,7 +7,7 @@ import PathFinder from "geojson-path-finder";
 import * as turf from "@turf/turf";
 import { addMapLayers } from "./mapLayers";
 import BottomMenu from "./components/BottomMenu";
-import { Feature, FeatureCollection } from "geojson";
+import { Feature, FeatureCollection, LineString } from "geojson";
 
 interface FeatureProperties {
   highway?: string;
@@ -31,7 +31,7 @@ export default function Map() {
   const [pathError, setPathError] = useState<string | null>(null);
 
   // Function to update markers
-  const updateMarkers = () => {
+  const updateMarkers = (start: [number, number] | null, end: [number, number] | null) => {
     if (!mapRef.current) return;
 
     console.log("RAAA")
@@ -49,19 +49,15 @@ export default function Map() {
     if (mapRef.current.getSource('end-marker')) {
       mapRef.current.removeSource('end-marker');
     }
-
-    // Add start marker if we have a start location
-    const startPoint = startLocation ? startLocation : 
-                      userLocation ? userLocation : null;
     
-    if (startPoint) {
+    if (start) {
       mapRef.current.addSource('start-marker', {
         type: 'geojson',
         data: {
           type: 'Feature',
           geometry: {
             type: 'Point',
-            coordinates: startPoint
+            coordinates: start
           },
           properties: {}
         }
@@ -81,14 +77,14 @@ export default function Map() {
     }
 
     // Add end marker if we have a destination
-    if (destination) {
+    if (end) {
       mapRef.current.addSource('end-marker', {
         type: 'geojson',
         data: {
           type: 'Feature',
           geometry: {
             type: 'Point',
-            coordinates: destination
+            coordinates: end
           },
           properties: {}
         }
@@ -115,15 +111,63 @@ export default function Map() {
     }
     
     console.log("calculating path");
-    const start = startLocation ? turf.point(startLocation) : 
-                 userLocation ? turf.point(userLocation) : 
-                 turf.point([-122.1290835, 37.3615535]); // Default fallback
-    const end = turf.point(destination);
-    console.log("startLocation", startLocation);
-    console.log("userLocation", userLocation);
-    console.log("start", start);
-    console.log("end", end);
-    const path = pathfinderRef.current.findPath(start, end);
+
+    // Get all line features from the data
+    const lineFeatures = dataRef.current?.features.filter(
+      feature => feature.geometry.type === 'LineString'
+    ) as Feature<LineString>[] || [];
+
+    // Find nearest points on the network
+    const startPoint = startLocation ? turf.point(startLocation) : 
+                      userLocation ? turf.point(userLocation) : 
+                      turf.point([-122.1290835, 37.3615535]); // Default fallback
+    const endPoint = turf.point(destination);
+
+    // Find the nearest point on any line segment
+    let minStartDist = Infinity;
+    let minEndDist = Infinity;
+    let snappedStart = startPoint.geometry.coordinates;
+    let snappedEnd = endPoint.geometry.coordinates;
+
+    for (const feature of lineFeatures) {
+      const line = feature.geometry;
+      // const startNearest = turf.nearestPointOnLine(line, startPoint);
+      // const endNearest = turf.nearestPointOnLine(line, endPoint);
+
+      // if (startNearest.properties?.dist < minStartDist) {
+      //   minStartDist = startNearest.properties.dist;
+      //   snappedStart = startNearest;
+      // }
+      // if (endNearest.properties?.dist < minEndDist) {
+      //   minEndDist = endNearest.properties.dist;
+      //   snappedEnd = endNearest;
+      // }
+
+      for(const position of line.coordinates) {
+        const startDist = turf.distance(position, startPoint.geometry.coordinates)
+        const endDist = turf.distance(position, endPoint.geometry.coordinates)
+        if(startDist < minStartDist) {
+          minStartDist = startDist
+          snappedStart = position
+        }
+        if(endDist < minEndDist) {
+          minEndDist = endDist
+          snappedEnd = position
+        }
+      }
+
+      
+    }
+
+    console.log("Original start:", startPoint.geometry.coordinates);
+    console.log("Snapped start:", snappedStart);
+    console.log("Original end:", endPoint.geometry.coordinates);
+    console.log("Snapped end:", snappedEnd);
+
+    const path = pathfinderRef.current.findPath(
+      turf.point(snappedStart),
+      turf.point(snappedEnd)
+    );
 
     // Remove existing route layer if it exists
     if (mapRef.current.getLayer('route-line')) {
@@ -158,18 +202,21 @@ export default function Map() {
           'line-opacity': 0.7
         }
       });
-
-      // Update markers after successful path calculation
-      updateMarkers();
     } else {
       setPathError("No viable path found between the selected locations");
     }
+    updateMarkers(snappedStart as [number, number], snappedEnd as [number, number]);
   };
 
   // Function to update user location marker
   const updateUserLocationMarker = (coordinates: [number, number]) => {
     if (!mapRef.current) return;
-    
+    if (!mapRef.current.isStyleLoaded()) {
+      mapRef.current.on("load", () => {updateUserLocationMarker(coordinates)});
+      console.log("RAASD")
+      return
+    }
+    console.log("ASD  ")
 
     // Remove existing user location marker if it exists
     if (mapRef.current.getLayer('user-location')) {
