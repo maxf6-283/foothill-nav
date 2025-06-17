@@ -8,6 +8,16 @@ interface LocationDropdownProps {
   onChange: (value: string) => void;
   currentLocation?: [number, number] | null;
   includeCurrentLocation?: boolean;
+  onValidityChange?: (isValid: boolean) => void;
+  customStyles?: React.CSSProperties;
+  isUserInCampus?: boolean | null;
+}
+
+interface DropdownItem {
+  name: string;
+  coordinates: [number, number] | [number, number][] | null;
+  disabled?: boolean;
+  highlightable?: boolean;
 }
 
 function LocationDropdown({ 
@@ -15,7 +25,10 @@ function LocationDropdown({
   placeholder, 
   value, 
   onChange,
-  includeCurrentLocation = false 
+  includeCurrentLocation = false,
+  onValidityChange,
+  customStyles,
+  isUserInCampus
 }: LocationDropdownProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(value);
@@ -24,30 +37,43 @@ function LocationDropdown({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleLocationChange = (value: string) => {
+    if (value === "Current Location" && (isUserInCampus === false || isUserInCampus === null)) {
+      return;
+    }
     onChange(value);
     setSearchQuery(value);
     setIsDropdownOpen(false);
     setIsSearching(false);
+    onValidityChange?.(true);
   };
 
-  const filteredLocations = isSearching ? 
+  const validateInput = (text: string) => {
+    const isValid = text === "Current Location" ? isUserInCampus === true : 
+      locations.some(loc => loc.name === text);
+    onValidityChange?.(isValid);
+    return isValid;
+  };
+
+  const filteredLocations: DropdownItem[] = isSearching ? 
     (includeCurrentLocation ? 
       [{
         name: "Current Location",
-        coordinates: null
-      }, ...locations.filter(location =>
+        coordinates: null,
+        disabled: isUserInCampus === false || isUserInCampus === null
+      }, ...locations.map(loc => ({ ...loc, disabled: false }))].filter(location =>
         location.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )] :
-      locations.filter(location =>
+      ) :
+      locations.map(loc => ({ ...loc, disabled: false })).filter(location =>
         location.name.toLowerCase().includes(searchQuery.toLowerCase())
       )
     ) : 
     (includeCurrentLocation ? 
       [{
         name: "Current Location",
-        coordinates: null
-      }, ...locations] :
-      locations
+        coordinates: null,
+        disabled: isUserInCampus === false || isUserInCampus === null
+      }, ...locations.map(loc => ({ ...loc, disabled: false }))] :
+      locations.map(loc => ({ ...loc, disabled: false }))
     );
 
   useEffect(() => {
@@ -71,9 +97,10 @@ function LocationDropdown({
   // Set text when value is externally set
   useEffect(() => {
     if (searchQuery != value) {
-      setSearchQuery(value)
+      setSearchQuery(value);
+      validateInput(value);
     }
-  }, [value])
+  }, [value]);
 
   return (
     <div style={{ marginBottom: '20px' }}>
@@ -114,6 +141,9 @@ function LocationDropdown({
               setIsDropdownOpen(true);
               setIsSearching(true);
             }}
+            onBlur={() => {
+              validateInput(searchQuery);
+            }}
             placeholder={placeholder}
             style={{
               width: '100%',
@@ -122,6 +152,7 @@ function LocationDropdown({
               fontSize: '1rem',
               backgroundColor: 'transparent',
               cursor: 'pointer',
+              ...customStyles
             }}
             onClick={(e) => {
               e.stopPropagation();
@@ -172,10 +203,13 @@ function LocationDropdown({
                   onClick={() => handleLocationChange(location.name)}
                   style={{
                     padding: '8px 12px',
-                    cursor: 'pointer',
+                    cursor: location.disabled ? 'not-allowed' : 'pointer',
                     backgroundColor: value === location.name ? '#f0f0f0' : 'transparent',
+                    color: location.disabled ? '#999' : 'inherit',
+                    fontStyle: location.disabled ? 'italic' : 'normal',
+                    opacity: location.disabled ? 0.7 : 1,
                   }}
-                  className="hover:bg-gray-100"
+                  className={!location.disabled ? "hover:bg-gray-100" : ""}
                 >
                   {location.name}
                 </div>
@@ -186,6 +220,26 @@ function LocationDropdown({
                 </div>
               )}
             </div>
+          </div>
+        )}
+        {value === "Current Location" && isUserInCampus === false && (
+          <div style={{ 
+            color: '#ff4444', 
+            fontSize: '0.875rem', 
+            marginTop: '4px',
+            fontWeight: '500'
+          }}>
+            User is not inside Foothill campus
+          </div>
+        )}
+        {value === "Current Location" && isUserInCampus === null && (
+          <div style={{ 
+            color: '#ff4444', 
+            fontSize: '0.875rem', 
+            marginTop: '4px',
+            fontWeight: '500'
+          }}>
+            User location not available
           </div>
         )}
       </div>
@@ -206,6 +260,8 @@ interface BottomMenuProps {
   onSelectedDestinationChange: (destination: string) => void;
   selectedStart: string;
   onSelectedStartChange: (destination: string) => void;
+  isGoDisabled: boolean;
+  isUserInCampus: boolean | null;
 }
 
 export default function BottomMenu({ 
@@ -220,8 +276,13 @@ export default function BottomMenu({
   selectedDestination,
   onSelectedDestinationChange,
   selectedStart,
-  onSelectedStartChange
+  onSelectedStartChange,
+  isGoDisabled,
+  isUserInCampus
 }: BottomMenuProps) {
+  const [isStartValid, setIsStartValid] = useState(true);
+  const [isDestinationValid, setIsDestinationValid] = useState(true);
+
   const handleDestinationChange = (value: string) => {
     onSelectedDestinationChange(value);
     const location = locations.find(loc => loc.name === value);
@@ -234,6 +295,8 @@ export default function BottomMenu({
     const location = locations.find(loc => loc.name === value);
     onStartLocationChange(location ? location.coordinates : null);
   };
+
+  const isCurrentLocationValid = selectedStart === "Current Location" ? isUserInCampus === true : true;
 
   return (
     <div
@@ -305,6 +368,12 @@ export default function BottomMenu({
               value={selectedStart}
               onChange={handleStartLocationChange}
               includeCurrentLocation={true}
+              onValidityChange={setIsStartValid}
+              customStyles={selectedStart === "Current Location" && (isUserInCampus === false || isUserInCampus === null) ? {
+                color: '#999',
+                fontStyle: 'italic'
+              } : undefined}
+              isUserInCampus={isUserInCampus}
             />
 
             <LocationDropdown
@@ -312,6 +381,7 @@ export default function BottomMenu({
               placeholder="Search destinations..."
               value={selectedDestination}
               onChange={handleDestinationChange}
+              onValidityChange={setIsDestinationValid}
             />
 
             <div style={{ marginBottom: '20px' }}>
@@ -354,21 +424,30 @@ export default function BottomMenu({
 
             <button
               onClick={onGoClick}
+              disabled={isGoDisabled || !isStartValid || !isDestinationValid || !isCurrentLocationValid}
               style={{
                 width: '100%',
                 padding: '12px',
-                backgroundColor: '#4CAF50',
+                backgroundColor: (isGoDisabled || !isStartValid || !isDestinationValid || !isCurrentLocationValid) ? '#cccccc' : '#4CAF50',
                 color: 'white',
                 border: 'none',
                 borderRadius: '4px',
                 fontSize: '1rem',
                 fontWeight: '600',
-                cursor: 'pointer',
+                cursor: (isGoDisabled || !isStartValid || !isDestinationValid || !isCurrentLocationValid) ? 'not-allowed' : 'pointer',
                 marginTop: '20px',
                 transition: 'background-color 0.2s ease-in-out',
               }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#45a049'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#4CAF50'}
+              onMouseOver={(e) => {
+                if (!isGoDisabled && isStartValid && isDestinationValid && isCurrentLocationValid) {
+                  e.currentTarget.style.backgroundColor = '#45a049';
+                }
+              }}
+              onMouseOut={(e) => {
+                if (!isGoDisabled && isStartValid && isDestinationValid && isCurrentLocationValid) {
+                  e.currentTarget.style.backgroundColor = '#4CAF50';
+                }
+              }}
             >
               Go
             </button>

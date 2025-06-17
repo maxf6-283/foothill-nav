@@ -7,7 +7,7 @@ import PathFinder from "geojson-path-finder";
 import * as turf from "@turf/turf";
 import { addMapLayers } from "./mapLayers";
 import BottomMenu from "./components/BottomMenu";
-import { Feature, FeatureCollection, GeoJsonProperties, Geometry, LineString, Position } from "geojson";
+import { Feature, FeatureCollection, GeoJsonProperties, Geometry, LineString, Position, Polygon } from "geojson";
 import { Path } from "geojson-path-finder/dist/esm/types";
 import { Location, locations } from "./locations"
 
@@ -36,6 +36,7 @@ export default function Map() {
   const currentPopupRef = useRef<maplibregl.Popup | null>(null);
   const [selectedDestination, setSelectedDestination] = useState('');
   const [selectedStart, setSelectedStart] = useState('Current Location');
+  const [isUserInCampus, setIsUserInCampus] = useState<boolean | null>(null);
 
   // Function to update URL parameters
   const updateUrlParams = (start: string, dest: string) => {
@@ -349,6 +350,19 @@ export default function Map() {
     updateMarkers(startPoint, endPoint);
   };
 
+  // Function to check if a point is inside the campus
+  const isPointInCampus = (point: [number, number]) => {
+    if (!dataRef.current) return false;
+    
+    const campusFeature = dataRef.current.features.find(
+      feature => feature.properties?.['@id'] === 'way/29120897'
+    ) as Feature<Polygon> | undefined;
+    
+    if (!campusFeature || campusFeature.geometry.type !== 'Polygon') return false;
+    
+    return turf.booleanPointInPolygon(point, campusFeature);
+  };
+
   // Function to update user location marker
   const updateUserLocationMarker = (coordinates: [number, number]) => {
     if (!mapRef.current) return;
@@ -356,6 +370,10 @@ export default function Map() {
       mapRef.current.on("load", () => {updateUserLocationMarker(coordinates)});
       return
     }
+
+    // Check if user is in campus
+    const inCampus = isPointInCampus(coordinates);
+    setIsUserInCampus(inCampus);
 
     // Remove existing user location marker if it exists
     if (mapRef.current.getLayer('user-location')) {
@@ -384,7 +402,7 @@ export default function Map() {
       source: 'user-location',
       paint: {
         'circle-radius': 8,
-        'circle-color': '#4285F4',
+        'circle-color': inCampus ? '#4285F4' : '#FF4444',
         'circle-stroke-width': 2,
         'circle-stroke-color': '#ffffff'
       }
@@ -697,7 +715,18 @@ export default function Map() {
       <BottomMenu 
         isStepFree={isStepFree} 
         onStepFreeChange={setIsStepFree}
-        onDestinationChange={setDestination}
+        onDestinationChange={(dest) => {
+          setDestination(dest);
+          if (dest && typeof dest[0] === 'number') {
+            const matchingLocation = locations.find(loc => 
+              JSON.stringify(loc.coordinates) === JSON.stringify(dest)
+            );
+            if (matchingLocation) {
+              setSelectedDestination(matchingLocation.name);
+              setDestinationRef(matchingLocation);
+            }
+          }
+        }}
         onDestinationRefChange={setDestinationRef}
         onStartLocationChange={setStartLocation}
         onGoClick={() => {
@@ -710,6 +739,8 @@ export default function Map() {
         onSelectedDestinationChange={setSelectedDestination}
         selectedStart={selectedStart}
         onSelectedStartChange={setSelectedStart}
+        isGoDisabled={!selectedDestination}
+        isUserInCampus={isUserInCampus}
       />
     </>
   );
