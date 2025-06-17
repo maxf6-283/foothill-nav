@@ -421,10 +421,6 @@ export default function Map() {
     if (!pathfinderRef.current || !destination)
       return;
 
-    const lineFeatures = dataRef.current?.features.filter(
-      feature => feature.geometry.type === 'LineString'
-    ) as Feature<LineString>[] || [];
-
     let endList: [number, number][] = []
 
     if (destination.length == 0) {
@@ -435,7 +431,7 @@ export default function Map() {
       endList = destination as [number, number][]
     }
 
-    let lots = locations.filter(e => e.lot == "student")
+    const lots = locations.filter(e => e.lot == "student")
 
     let path: Path<Feature<Geometry, GeoJsonProperties>> | undefined;
     let best_lot: Location | null = null;
