@@ -28,7 +28,6 @@ export default function Map() {
   const [destination, setDestination] = useState<[number, number] | [number, number][] | null>(null);
   const [startLocation, setStartLocation] = useState<[number, number] | [number, number][] | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-  const [userHeading, setUserHeading] = useState<number | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [pathError, setPathError] = useState<string | null>(null);
   const [isMenuExpanded, setIsMenuExpanded] = useState(false);
@@ -170,9 +169,9 @@ export default function Map() {
 
     let bestLength = Infinity;
 
-    for(let start of startList) {
-      for(let end of endList) {
-        let new_path = pathfinderRef.current.findPath(
+    for(const start of startList) {
+      for(const end of endList) {
+        const new_path = pathfinderRef.current.findPath(
           turf.point(start),
           turf.point(end)
         );
@@ -356,7 +355,7 @@ export default function Map() {
           // Create pathfinder instance
           const pathfinder = new PathFinder<Feature, FeatureProperties>(data, {
             weight: (a: Position, b: Position, properties: FeatureProperties) => {
-              let distance = turf.distance(a, b, {units: "meters"})
+              const distance = turf.distance(a, b, {units: "meters"})
       
               if (properties.waterway == "stream") {
                 return undefined
@@ -406,7 +405,8 @@ export default function Map() {
       }
 
       console.log("snapped ", [e.lngLat.lng, e.lngLat.lat], " to ", snappedLoc)
-      snappedLoc && navigator.clipboard.writeText("[" + snappedLoc[0] + ", " + snappedLoc[1] + "]")
+      if(snappedLoc) 
+        navigator.clipboard.writeText("[" + snappedLoc[0] + ", " + snappedLoc[1] + "]")
     });
 
     // Mouse move handler
@@ -447,7 +447,6 @@ export default function Map() {
           position.coords.latitude
         ];
         setUserLocation(newLocation);
-        setUserHeading(position.coords.heading);
         updateUserLocationMarker(newLocation, position.coords.heading);
         setLocationError(null);
       },
@@ -487,7 +486,7 @@ export default function Map() {
     // Update pathfinder weights
     pathfinderRef.current = new PathFinder<Feature, FeatureProperties>(dataRef.current, {
       weight: (a: Position, b: Position, properties: FeatureProperties) => {
-        let distance = turf.distance(a, b, {units: "meters"})
+        const distance = turf.distance(a, b, {units: "meters"})
 
         if (properties.waterway == "stream") {
           return undefined
