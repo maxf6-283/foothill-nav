@@ -68,6 +68,13 @@ function LocationDropdown({
     }
   }, [isDropdownOpen]);
 
+  // Set text when value is externally set
+  useEffect(() => {
+    if (searchQuery != value) {
+      setSearchQuery(value)
+    }
+  }, [value])
+
   return (
     <div style={{ marginBottom: '20px' }}>
       <label 
@@ -193,7 +200,12 @@ interface BottomMenuProps {
   onDestinationRefChange: (name: Location | null) => void;
   onStartLocationChange: (coordinates: [number, number] | [number, number][] | null) => void;
   onGoClick: () => void;
-  onExpand: (isExpanded: boolean) => void;
+  isMenuExpanded: boolean;
+  onIsMenuExpandedChange: (isMenuExpanded: boolean) => void;
+  selectedDestination: string;
+  onSelectedDestinationChange: (destination: string) => void;
+  selectedStart: string;
+  onSelectedStartChange: (destination: string) => void;
 }
 
 export default function BottomMenu({ 
@@ -203,26 +215,22 @@ export default function BottomMenu({
   onDestinationRefChange,
   onStartLocationChange,
   onGoClick,
-  onExpand
+  isMenuExpanded,
+  onIsMenuExpandedChange,
+  selectedDestination,
+  onSelectedDestinationChange,
+  selectedStart,
+  onSelectedStartChange
 }: BottomMenuProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [selectedDestination, setSelectedDestination] = useState('');
-  const [selectedStart, setSelectedStart] = useState('Current Location');
-
-  const handleExpand = (expanded: boolean) => {
-    setIsExpanded(expanded);
-    onExpand(expanded);
-  };
-
   const handleDestinationChange = (value: string) => {
-    setSelectedDestination(value);
+    onSelectedDestinationChange(value);
     const location = locations.find(loc => loc.name === value);
     onDestinationChange(location ? location.coordinates : null);
     onDestinationRefChange(location ? location : null);
   };
 
   const handleStartLocationChange = (value: string) => {
-    setSelectedStart(value);
+    onSelectedStartChange(value);
     const location = locations.find(loc => loc.name === value);
     onStartLocationChange(location ? location.coordinates : null);
   };
@@ -237,13 +245,13 @@ export default function BottomMenu({
         backgroundColor: 'white',
         boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.1)',
         transition: 'height 0.3s ease-in-out',
-        height: isExpanded ? '50vh' : '60px',
+        height: isMenuExpanded ? '50vh' : '60px',
         zIndex: 1000,
       }}
     >
       {/* Arrow button */}
       <button
-        onClick={() => handleExpand(!isExpanded)}
+        onClick={() => onIsMenuExpandedChange(!isMenuExpanded)}
         style={{
           position: 'absolute',
           left: '20px',
@@ -252,7 +260,7 @@ export default function BottomMenu({
           border: 'none',
           cursor: 'pointer',
           padding: '5px',
-          transform: isExpanded ? 'rotate(0deg)' : 'rotate(180deg)',
+          transform: isMenuExpanded ? 'rotate(0deg)' : 'rotate(180deg)',
           transition: 'transform 0.3s ease-in-out',
           color: '#333',
         }}
@@ -279,7 +287,7 @@ export default function BottomMenu({
           overflowY: 'auto',
         }}
       >
-        {isExpanded && (
+        {isMenuExpanded && (
           <div>
             <h2 style={{ 
               marginBottom: '20px',

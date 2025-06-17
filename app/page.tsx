@@ -9,7 +9,7 @@ import { addMapLayers } from "./mapLayers";
 import BottomMenu from "./components/BottomMenu";
 import { Feature, FeatureCollection, GeoJsonProperties, Geometry, LineString, Position } from "geojson";
 import { Path } from "geojson-path-finder/dist/esm/types";
-import { Location } from "./locations"
+import { Location, locations } from "./locations"
 
 interface FeatureProperties {
   highway?: string;
@@ -34,6 +34,8 @@ export default function Map() {
   const [pathError, setPathError] = useState<string | null>(null);
   const [isMenuExpanded, setIsMenuExpanded] = useState(false);
   const currentPopupRef = useRef<maplibregl.Popup | null>(null);
+  const [selectedDestination, setSelectedDestination] = useState('');
+  const [selectedStart, setSelectedStart] = useState('Current Location');
 
   // Function to update markers
   const updateMarkers = (start: [number, number] | null, end: [number, number] | null) => {
@@ -428,6 +430,28 @@ export default function Map() {
         navigator.clipboard.writeText("[" + snappedLoc[0] + ", " + snappedLoc[1] + "]")
     });
 
+    // Add click handler
+    map.on("click", (e) => {
+      // Check if we clicked on a building that matches a location
+      const clickedFeatures = map.queryRenderedFeatures(e.point);
+      const clickedBuilding = clickedFeatures.find(feature =>  
+        locations.find(loc => loc.name == feature.properties?.name)
+      );
+
+      console.log("b",clickedBuilding)
+
+      if (clickedBuilding) {
+        // Find matching location
+        const matchingLocation = locations.find(loc => loc.name == clickedBuilding.properties.name);
+        if (matchingLocation) {
+          setDestination(matchingLocation.coordinates);
+          setSelectedDestination(matchingLocation.name)
+          setDestinationRef(matchingLocation);
+          setIsMenuExpanded(true);
+        }
+      }
+    });
+
     // Mouse move handler
     map.on("mousemove", (e) => {
       setLngLat({ lng: e.lngLat.lng, lat: e.lngLat.lat });
@@ -562,17 +586,6 @@ export default function Map() {
     });
   }, [isStepFree]);
 
-  // Function to handle menu expansion
-  const handleMenuExpand = (expanded: boolean) => {
-    setIsMenuExpanded(expanded);
-    // Trigger a resize event to make the map adjust
-    if (mapRef.current) {
-      setTimeout(() => {
-        mapRef.current?.resize();
-      }, 300); // Wait for the menu animation to complete
-    }
-  };
-
   return (
     <>
       <div
@@ -648,7 +661,12 @@ export default function Map() {
           calculatePath();
           console.log("calculated path");
         }}
-        onExpand={handleMenuExpand}
+        isMenuExpanded={isMenuExpanded}
+        onIsMenuExpandedChange={setIsMenuExpanded}
+        selectedDestination={selectedDestination}
+        onSelectedDestinationChange={setSelectedDestination}
+        selectedStart={selectedStart}
+        onSelectedStartChange={setSelectedStart}
       />
     </>
   );
