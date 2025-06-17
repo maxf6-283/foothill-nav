@@ -37,6 +37,49 @@ export default function Map() {
   const [selectedDestination, setSelectedDestination] = useState('');
   const [selectedStart, setSelectedStart] = useState('Current Location');
 
+  // Function to update URL parameters
+  const updateUrlParams = (start: string, dest: string) => {
+    const params = new URLSearchParams(window.location.search);
+    if (start) params.set('start', start);
+    if (dest) params.set('dest', dest);
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+  };
+
+  // Function to read URL parameters
+  const readUrlParams = () => {
+    const params = new URLSearchParams(window.location.search);
+    const startParam = params.get('start');
+    const destParam = params.get('dest');
+
+    if (startParam) {
+      setSelectedStart(startParam);
+      const startLocation = locations.find(loc => loc.name === startParam);
+      if (startLocation) {
+        setStartLocation(startLocation.coordinates);
+      }
+    }
+
+    if (destParam) {
+      setSelectedDestination(destParam);
+      const destLocation = locations.find(loc => loc.name === destParam);
+      if (destLocation) {
+        setDestination(destLocation.coordinates);
+        setDestinationRef(destLocation);
+        setIsMenuExpanded(true);
+      }
+    }
+  };
+
+  // Read URL parameters on initial load
+  useEffect(() => {
+    readUrlParams();
+  }, []);
+
+  // Update URL when locations change
+  useEffect(() => {
+    updateUrlParams(selectedStart, selectedDestination);
+  }, [selectedStart, selectedDestination]);
+
   // Function to update markers
   const updateMarkers = (start: [number, number] | null, end: [number, number] | null) => {
     if (!mapRef.current) return;
