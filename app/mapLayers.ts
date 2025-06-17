@@ -93,6 +93,7 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
       [
         "any",
         ["==", ["get", "highway"], "footway"],
+        ["==", ["get", "highway"], "path"],
         ["==", ["get", "foot"], "yes"],
       ],
     ],

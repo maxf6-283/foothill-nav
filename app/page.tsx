@@ -1,103 +1,542 @@
-import Image from "next/image";
+"use client"; // For Next.js 13+ app router, or ignore if using pages router
 
-export default function Home() {
+import { useEffect, useRef, useState } from "react";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+import PathFinder from "geojson-path-finder";
+import * as turf from "@turf/turf";
+import { addMapLayers } from "./mapLayers";
+import BottomMenu from "./components/BottomMenu";
+import { Feature, FeatureCollection, GeoJsonProperties, Geometry, LineString, Position } from "geojson";
+import { Path } from "geojson-path-finder/dist/esm/types";
+
+interface FeatureProperties {
+  highway?: string;
+  foot?: string;
+  [key: string]: unknown;
+}
+
+export default function Map() {
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map>(null);
+  const dataRef = useRef<FeatureCollection | null>(null);
+  const pathfinderRef = useRef<PathFinder<Feature, FeatureProperties> | null>(null);
+  const [hoveredFeature, setHoveredFeature] = useState<FeatureProperties | null>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [lngLat, setLngLat] = useState({ lng: 0, lat: 0 });
+  const [isStepFree, setIsStepFree] = useState(false);
+  const [destination, setDestination] = useState<[number, number] | [number, number][] | null>(null);
+  const [startLocation, setStartLocation] = useState<[number, number] | [number, number][] | null>(null);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [pathError, setPathError] = useState<string | null>(null);
+
+  // Function to update markers
+  const updateMarkers = (start: [number, number] | null, end: [number, number] | null) => {
+    if (!mapRef.current) return;
+
+    console.log("RAAA")
+
+    // Remove existing markers if they exist
+    if (mapRef.current.getLayer('start-marker')) {
+      mapRef.current.removeLayer('start-marker');
+    }
+    if (mapRef.current.getSource('start-marker')) {
+      mapRef.current.removeSource('start-marker');
+    }
+    if (mapRef.current.getLayer('end-marker')) {
+      mapRef.current.removeLayer('end-marker');
+    }
+    if (mapRef.current.getSource('end-marker')) {
+      mapRef.current.removeSource('end-marker');
+    }
+    
+    if (start) {
+      mapRef.current.addSource('start-marker', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: start
+          },
+          properties: {}
+        }
+      });
+
+      mapRef.current.addLayer({
+        id: 'start-marker',
+        type: 'circle',
+        source: 'start-marker',
+        paint: {
+          'circle-radius': 8,
+          'circle-color': '#4CAF50',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+    }
+
+    // Add end marker if we have a destination
+    if (end) {
+      mapRef.current.addSource('end-marker', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: end
+          },
+          properties: {}
+        }
+      });
+
+      mapRef.current.addLayer({
+        id: 'end-marker',
+        type: 'circle',
+        source: 'end-marker',
+        paint: {
+          'circle-radius': 8,
+          'circle-color': '#FF4444',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+    }
+  };
+
+  const calculatePath = () => {
+    if (!mapRef.current || !pathfinderRef.current || !destination || (!startLocation && !userLocation)) {
+      setPathError("Please select a destination");
+      return;
+    }
+    
+    console.log("calculating path");
+
+    // Get all line features from the data
+    const lineFeatures = dataRef.current?.features.filter(
+      feature => feature.geometry.type === 'LineString'
+    ) as Feature<LineString>[] || [];
+    
+    let endList: [number, number][] = []
+    let startList: [number, number][] = []
+
+    if(destination.length == 0) {
+      //TODO: raise error of some kind
+    } else if (typeof destination[0] == 'number') {
+      endList = [destination as [number, number]]
+    } else {
+      endList = destination as [number, number][]
+    }
+
+    if (startLocation == null) {
+      //snap user location
+
+      let minDist = Infinity;
+      let snappedUserLoc: [number, number] | null = null;
+
+      for (const feature of lineFeatures) {
+        const line = feature.geometry;
+
+        for(const position of line.coordinates) {
+          const dist = turf.distance(position, userLocation as [number, number])
+          if(dist < minDist) {
+            minDist = dist
+            snappedUserLoc = position as [number, number]
+          }
+        }
+      }
+
+      console.log("snapped ", userLocation, " to ", snappedUserLoc)
+
+      startList = [snappedUserLoc as [number, number]]
+    } else if(startLocation.length == 0) {
+      //TODO: raise error of some kind
+    } else if (typeof startLocation[0] == 'number') {
+      startList = [startLocation as [number, number]]
+    } else {
+      startList = startLocation as [number, number][]
+    }
+
+    let path: Path<Feature<Geometry, GeoJsonProperties>> | undefined;
+    let startPoint: [number, number] | null = null;
+    let endPoint: [number, number] | null = null;
+
+    let bestLength = Infinity;
+
+    for(let start of startList) {
+      for(let end of endList) {
+        let new_path = pathfinderRef.current.findPath(
+          turf.point(start),
+          turf.point(end)
+        );
+        if(new_path != undefined && (path == undefined || new_path.weight < bestLength)) {
+          path = new_path
+          bestLength = new_path.weight
+          startPoint = start
+          endPoint = end
+        }
+      }
+    }
+
+    
+
+    // Remove existing route layer if it exists
+    if (mapRef.current.getLayer('route-line')) {
+      mapRef.current.removeLayer('route-line');
+    }
+    if (mapRef.current.getSource('route')) {
+      mapRef.current.removeSource('route');
+    }
+
+    // Add new route
+    if (path) {
+      setPathError(null);
+      mapRef.current.addSource("route", {
+        type: "geojson",
+        data: {
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates: path.path,
+          },
+          properties: {}
+        },
+      });
+
+      mapRef.current.addLayer({
+        id: 'route-line',
+        type: 'line',
+        source: 'route',
+        paint: {
+          'line-color': '#ffff00',
+          'line-width': 8,
+          'line-opacity': 0.7
+        }
+      });
+    } else {
+      setPathError("No viable path found between the selected locations");
+    }
+    updateMarkers(startPoint, endPoint);
+  };
+
+  // Function to update user location marker
+  const updateUserLocationMarker = (coordinates: [number, number]) => {
+    if (!mapRef.current) return;
+    if (!mapRef.current.isStyleLoaded()) {
+      mapRef.current.on("load", () => {updateUserLocationMarker(coordinates)});
+      console.log("RAASD")
+      return
+    }
+    console.log("ASD  ")
+
+    // Remove existing user location marker if it exists
+    if (mapRef.current.getLayer('user-location')) {
+      mapRef.current.removeLayer('user-location');
+    }
+    if (mapRef.current.getSource('user-location')) {
+      mapRef.current.removeSource('user-location');
+    }
+
+    // Add new user location marker
+    mapRef.current.addSource('user-location', {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: coordinates
+        },
+        properties: {}
+      }
+    });
+
+    mapRef.current.addLayer({
+      id: 'user-location',
+      type: 'circle',
+      source: 'user-location',
+      paint: {
+        'circle-radius': 8,
+        'circle-color': '#4285F4',
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#ffffff'
+      }
+    });
+  };
+
+  useEffect(() => {
+    if (mapRef.current) {
+      return;
+    }
+
+    const map = new maplibregl.Map({
+      container: mapContainer.current as HTMLDivElement,
+      style:
+        "https://api.maptiler.com/maps/basic-v2/style.json?key=IB3MIEFaSnwKWw8vcwGF",
+      center: [-122.128, 37.3613],
+      zoom: 16,
+      maxBounds: [
+        [-122.136, 37.357],
+        [-122.1205, 37.367],
+      ],
+    });
+
+    mapRef.current = map;
+
+    map.on("load", () => {
+      fetch("/foothill.json")
+        .then((res) => res.json())
+        .then((data) => {
+          dataRef.current = data;
+          
+          // Create pathfinder instance
+          const pathfinder = new PathFinder<Feature, FeatureProperties>(data, {
+            weight: (a: Position, b: Position, properties: FeatureProperties) => {
+              let distance = turf.distance(a, b, {units: "meters"})
+      
+              if (properties.highway === "steps") {
+                return (isStepFree ? 1000 : 2) * distance;
+              }
+              else if (properties.highway === "footway" || properties.highway === "path" || properties.foot === "yes") {
+                return distance;
+              }
+              return 2 * distance;
+            }
+          });
+          pathfinderRef.current = pathfinder;
+
+          // Add all map layers
+          addMapLayers(map, data);
+        });
+    });
+
+    // Add click handler
+    map.on("click", (e) => {
+      const lineFeatures = dataRef.current?.features.filter(
+        feature => feature.geometry.type === 'LineString'
+      ) as Feature<LineString>[] || [];
+
+      let minDist = Infinity;
+      let snappedLoc: [number, number] | null = null;
+
+      for (const feature of lineFeatures) {
+        const line = feature.geometry;
+
+        for(const position of line.coordinates) {
+          const dist = turf.distance(position, [e.lngLat.lng, e.lngLat.lat])
+          if(dist < minDist) {
+            minDist = dist
+            snappedLoc = position as [number, number]
+          }
+        }
+      }
+
+      console.log("snapped ", [e.lngLat.lng, e.lngLat.lat], " to ", snappedLoc)
+      snappedLoc && navigator.clipboard.writeText("[" + snappedLoc[0] + ", " + snappedLoc[1] + "]")
+    });
+
+    // Mouse move handler
+    map.on("mousemove", (e) => {
+      setLngLat({ lng: e.lngLat.lng, lat: e.lngLat.lat });
+
+      const features = map.queryRenderedFeatures(e.point);
+      if (features.length > 0) {
+        setHoveredFeature(features[0].properties as FeatureProperties);
+        setMousePos({
+          x: e.originalEvent.clientX,
+          y: e.originalEvent.clientY,
+        });
+      } else {
+        setHoveredFeature(null);
+      }
+    });
+
+    // Clear on mouse leave
+    map.on("mouseleave", () => {
+      setHoveredFeature(null);
+    });
+
+    return () => map.remove();
+  }, []);
+
+  // Effect to request user location
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser");
+      return;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const newLocation: [number, number] = [
+          position.coords.longitude,
+          position.coords.latitude
+        ];
+        setUserLocation(newLocation);
+        updateUserLocationMarker(newLocation);
+        setLocationError(null); // Clear any previous errors
+      },
+      (error) => {
+        let errorMessage = "Error getting location: ";
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage += "Please allow location access in your browser settings";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage += "Location information is unavailable. Please check your device's location services";
+            break;
+          case error.TIMEOUT:
+            errorMessage += "Location request timed out. Please try again";
+            break;
+          default:
+            errorMessage += error.message || "Unknown error";
+        }
+        setLocationError(errorMessage);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000, // Increased timeout to 10 seconds
+        maximumAge: 0
+      }
+    );
+
+    // Also try to get an immediate position fix
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newLocation: [number, number] = [
+          position.coords.longitude,
+          position.coords.latitude
+        ];
+        setUserLocation(newLocation);
+        updateUserLocationMarker(newLocation);
+        setLocationError(null);
+      },
+      (error) => {
+        // Only set error if we don't already have a location from watchPosition
+        if (!userLocation) {
+          let errorMessage = "Error getting initial location: ";
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage += "Please allow location access in your browser settings";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage += "Location information is unavailable. Please check your device's location services";
+              break;
+            case error.TIMEOUT:
+              errorMessage += "Location request timed out. Please try again";
+              break;
+            default:
+              errorMessage += error.message || "Unknown error";
+          }
+          setLocationError(errorMessage);
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, []);
+
+  // Effect to recalculate path when step-free option changes
+  useEffect(() => {
+    if (!pathfinderRef.current) return;
+
+    // Update pathfinder weights
+    pathfinderRef.current = new PathFinder<Feature, FeatureProperties>(dataRef.current, {
+      weight: (a: Position, b: Position, properties: FeatureProperties) => {
+        let distance = turf.distance(a, b, {units: "meters"})
+
+        if (properties.highway === "steps") {
+          return (isStepFree ? 1000 : 2) * distance;
+        }
+        else if (properties.highway === "footway" || properties.highway === "path" || properties.foot === "yes") {
+          return distance;
+        }
+        return 2 * distance;
+      }
+    });
+  }, [isStepFree]);
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <>
+      <div
+        ref={mapContainer}
+        style={{
+          width: "100%",
+          height: "100vh",
+          position: "relative",
+        }}
+      />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {hoveredFeature && (
+        <div
+          style={{
+            position: "fixed",
+            top: mousePos.y + 10,
+            left: mousePos.x + 10,
+            background: "white",
+            padding: "8px",
+            border: "1px solid #ccc",
+            borderRadius: "4px",
+            fontSize: "14px",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+            zIndex: 1000,
+            pointerEvents: "none",
+            color: "black",
+          }}
+        >
+          {Object.entries(hoveredFeature).map(([key, value]) => (
+            <div key={key}>
+              <strong>{key}</strong>: {value?.toString()}
+            </div>
+          ))}
+          <div>
+            <strong>lng</strong>: {lngLat.lng}
+          </div>
+          <div>
+            <strong>lat</strong>: {lngLat.lat}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+      )}
+
+      {(locationError || pathError) && (
+        <div
+          style={{
+            position: "fixed",
+            top: "20px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#ff4444",
+            color: "white",
+            padding: "8px 16px",
+            borderRadius: "4px",
+            fontSize: "14px",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+            zIndex: 1000,
+          }}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          {locationError}
+          {locationError && pathError && <br />}
+          {pathError}
+        </div>
+      )}
+
+      <BottomMenu 
+        isStepFree={isStepFree} 
+        onStepFreeChange={setIsStepFree}
+        onDestinationChange={setDestination}
+        onStartLocationChange={setStartLocation}
+        onGoClick={() => {
+          calculatePath();
+          console.log("calculated path");
+        }}
+      />
+    </>
   );
 }

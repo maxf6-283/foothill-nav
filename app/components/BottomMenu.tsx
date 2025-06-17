@@ -189,8 +189,8 @@ function LocationDropdown({
 interface BottomMenuProps {
   isStepFree: boolean;
   onStepFreeChange: (value: boolean) => void;
-  onDestinationChange: (coordinates: [number, number] | null) => void;
-  onStartLocationChange: (coordinates: [number, number] | null) => void;
+  onDestinationChange: (coordinates: [number, number] | [number, number][] | null) => void;
+  onStartLocationChange: (coordinates: [number, number] | [number, number][] | null) => void;
   onGoClick: () => void;
 }
 
