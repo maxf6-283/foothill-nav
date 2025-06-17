@@ -28,8 +28,10 @@ export default function Map() {
   const [destination, setDestination] = useState<[number, number] | [number, number][] | null>(null);
   const [startLocation, setStartLocation] = useState<[number, number] | [number, number][] | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [userHeading, setUserHeading] = useState<number | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [pathError, setPathError] = useState<string | null>(null);
+  const [isMenuExpanded, setIsMenuExpanded] = useState(false);
 
   // Function to update markers
   const updateMarkers = (start: [number, number] | null, end: [number, number] | null) => {
@@ -136,6 +138,10 @@ export default function Map() {
       let snappedUserLoc: [number, number] | null = null;
 
       for (const feature of lineFeatures) {
+        if (feature.geometry.type != "LineString" || feature.properties?.waterway == "stream"){
+          continue
+        }
+
         const line = feature.geometry;
 
         for(const position of line.coordinates) {
@@ -208,11 +214,26 @@ export default function Map() {
         id: 'route-line',
         type: 'line',
         source: 'route',
+        layout: {
+          "line-join": "round",
+          "line-cap": "round"
+        },
         paint: {
           'line-color': '#ffff00',
           'line-width': 8,
           'line-opacity': 0.7
         }
+      });
+
+      // Fit map to route bounds
+      const bounds = path.path.reduce((bounds, coord) => {
+        return bounds.extend(coord as [number, number]);
+      }, new maplibregl.LngLatBounds(path.path[0] as [number, number], path.path[0] as [number, number]));
+
+      mapRef.current.fitBounds(bounds, {
+        padding: 100,
+        maxZoom: 18,
+        duration: 1000
       });
     } else {
       setPathError("No viable path found between the selected locations");
@@ -221,21 +242,25 @@ export default function Map() {
   };
 
   // Function to update user location marker
-  const updateUserLocationMarker = (coordinates: [number, number]) => {
+  const updateUserLocationMarker = (coordinates: [number, number], heading: number | null = null) => {
     if (!mapRef.current) return;
     if (!mapRef.current.isStyleLoaded()) {
-      mapRef.current.on("load", () => {updateUserLocationMarker(coordinates)});
-      console.log("RAASD")
-      return
+      mapRef.current.on("load", () => {updateUserLocationMarker(coordinates, heading)});
+      return;
     }
-    console.log("ASD  ")
 
-    // Remove existing user location marker if it exists
+    // Remove existing user location markers if they exist
     if (mapRef.current.getLayer('user-location')) {
       mapRef.current.removeLayer('user-location');
     }
     if (mapRef.current.getSource('user-location')) {
       mapRef.current.removeSource('user-location');
+    }
+    if (mapRef.current.getLayer('user-heading')) {
+      mapRef.current.removeLayer('user-heading');
+    }
+    if (mapRef.current.getSource('user-heading')) {
+      mapRef.current.removeSource('user-heading');
     }
 
     // Add new user location marker
@@ -262,6 +287,36 @@ export default function Map() {
         'circle-stroke-color': '#ffffff'
       }
     });
+
+    // Add heading indicator if we have a heading
+    if (heading !== null) {
+      mapRef.current.addSource('user-heading', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: coordinates
+          },
+          properties: {
+            heading: heading
+          }
+        }
+      });
+
+      mapRef.current.addLayer({
+        id: 'user-heading',
+        type: 'symbol',
+        source: 'user-heading',
+        layout: {
+          'icon-image': 'arrow',
+          'icon-rotate': ['get', 'heading'],
+          'icon-rotation-alignment': 'map',
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true
+        }
+      });
+    }
   };
 
   useEffect(() => {
@@ -275,15 +330,24 @@ export default function Map() {
         "https://api.maptiler.com/maps/basic-v2/style.json?key=IB3MIEFaSnwKWw8vcwGF",
       center: [-122.128, 37.3613],
       zoom: 16,
-      maxBounds: [
-        [-122.136, 37.357],
-        [-122.1205, 37.367],
-      ],
+      // maxBounds: [
+      //   [-122.136, 37.357],
+      //   [-122.1205, 37.367],
+      // ],
     });
 
     mapRef.current = map;
 
     map.on("load", () => {
+      // Add arrow image for heading indicator
+      const arrowImage = new Image(24, 24);
+      arrowImage.onload = () => {
+        if (!map.hasImage('arrow')) {
+          map.addImage('arrow', arrowImage);
+        }
+      };
+      arrowImage.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 0L24 12H14V24H10V12H0L12 0z" fill="%234285F4"/></svg>';
+
       fetch("/foothill.json")
         .then((res) => res.json())
         .then((data) => {
@@ -294,11 +358,17 @@ export default function Map() {
             weight: (a: Position, b: Position, properties: FeatureProperties) => {
               let distance = turf.distance(a, b, {units: "meters"})
       
-              if (properties.highway === "steps") {
-                return (isStepFree ? 1000 : 2) * distance;
+              if (properties.waterway == "stream") {
+                return undefined
+              }
+              else if (properties.highway === "steps") {
+                return (isStepFree ? 1000 : 1.5) * distance;
               }
               else if (properties.highway === "footway" || properties.highway === "path" || properties.foot === "yes") {
                 return distance;
+              }
+              else if (properties.elevator === "yes") {
+                return 30;
               }
               return 2 * distance;
             }
@@ -320,6 +390,10 @@ export default function Map() {
       let snappedLoc: [number, number] | null = null;
 
       for (const feature of lineFeatures) {
+        if (feature.geometry.type != "LineString" || feature.properties?.waterway == "stream"){
+          continue
+        }
+
         const line = feature.geometry;
 
         for(const position of line.coordinates) {
@@ -373,8 +447,9 @@ export default function Map() {
           position.coords.latitude
         ];
         setUserLocation(newLocation);
-        updateUserLocationMarker(newLocation);
-        setLocationError(null); // Clear any previous errors
+        setUserHeading(position.coords.heading);
+        updateUserLocationMarker(newLocation, position.coords.heading);
+        setLocationError(null);
       },
       (error) => {
         let errorMessage = "Error getting location: ";
@@ -392,44 +467,6 @@ export default function Map() {
             errorMessage += error.message || "Unknown error";
         }
         setLocationError(errorMessage);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000, // Increased timeout to 10 seconds
-        maximumAge: 0
-      }
-    );
-
-    // Also try to get an immediate position fix
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const newLocation: [number, number] = [
-          position.coords.longitude,
-          position.coords.latitude
-        ];
-        setUserLocation(newLocation);
-        updateUserLocationMarker(newLocation);
-        setLocationError(null);
-      },
-      (error) => {
-        // Only set error if we don't already have a location from watchPosition
-        if (!userLocation) {
-          let errorMessage = "Error getting initial location: ";
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage += "Please allow location access in your browser settings";
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage += "Location information is unavailable. Please check your device's location services";
-              break;
-            case error.TIMEOUT:
-              errorMessage += "Location request timed out. Please try again";
-              break;
-            default:
-              errorMessage += error.message || "Unknown error";
-          }
-          setLocationError(errorMessage);
-        }
       },
       {
         enableHighAccuracy: true,
@@ -452,16 +489,33 @@ export default function Map() {
       weight: (a: Position, b: Position, properties: FeatureProperties) => {
         let distance = turf.distance(a, b, {units: "meters"})
 
-        if (properties.highway === "steps") {
-          return (isStepFree ? 1000 : 2) * distance;
+        if (properties.waterway == "stream") {
+          return undefined
+        }
+        else if (properties.highway === "steps") {
+          return (isStepFree ? 1000 : 1.5) * distance;
         }
         else if (properties.highway === "footway" || properties.highway === "path" || properties.foot === "yes") {
           return distance;
+        }
+        else if (properties.elevator === "yes") {
+          return 30
         }
         return 2 * distance;
       }
     });
   }, [isStepFree]);
+
+  // Function to handle menu expansion
+  const handleMenuExpand = (expanded: boolean) => {
+    setIsMenuExpanded(expanded);
+    // Trigger a resize event to make the map adjust
+    if (mapRef.current) {
+      setTimeout(() => {
+        mapRef.current?.resize();
+      }, 300); // Wait for the menu animation to complete
+    }
+  };
 
   return (
     <>
@@ -469,8 +523,9 @@ export default function Map() {
         ref={mapContainer}
         style={{
           width: "100%",
-          height: "100vh",
+          height: isMenuExpanded ? "50vh" : "calc(100vh - 60px)",
           position: "relative",
+          transition: "height 0.3s ease-in-out"
         }}
       />
 
@@ -536,6 +591,7 @@ export default function Map() {
           calculatePath();
           console.log("calculated path");
         }}
+        onExpand={handleMenuExpand}
       />
     </>
   );

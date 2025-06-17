@@ -14,8 +14,9 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
     type: "fill",
     source: "foothill",
     paint: {
-      "fill-color": "#89cc9b",
-      "fill-opacity": 1.0,
+      "fill-color": "#e8f5e9",
+      "fill-opacity": 0.8,
+      "fill-outline-color": "#81c784"
     },
     filter: ["==", ["get", "name"], "Foothill College"],
   });
@@ -26,8 +27,9 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
     type: "fill",
     source: "foothill",
     paint: {
-      "fill-color": "#89a9cc",
-      "fill-opacity": 1.0,
+      "fill-color": "#bbdefb",
+      "fill-opacity": 0.9,
+      "fill-outline-color": "#64b5f6"
     },
     filter: ["==", ["get", "building"], "college"],
   });
@@ -38,8 +40,9 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
     type: "fill",
     source: "foothill",
     paint: {
-      "fill-color": "#898ccc",
-      "fill-opacity": 1.0,
+      "fill-color": "#e0e0e0",
+      "fill-opacity": 0.8,
+      "fill-outline-color": "#9e9e9e"
     },
     filter: ["==", ["get", "amenity"], "parking"],
   });
@@ -50,8 +53,9 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
     type: "fill",
     source: "foothill",
     paint: {
-      "fill-color": "#89a9cc",
-      "fill-opacity": 0.5,
+      "fill-color": "#e3f2fd",
+      "fill-opacity": 0.6,
+      "fill-outline-color": "#90caf9"
     },
     filter: [
       "all",
@@ -67,9 +71,14 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
     id: "waterways",
     type: "line",
     source: "foothill",
+    layout: {
+      "line-join": "round",
+      "line-cap": "round"
+    },
     paint: {
-      "line-color": "#4b50d6",
-      "line-width": 8,
+      "line-color": "#4fc3f7",
+      "line-width": 6,
+      "line-opacity": 0.8
     },
     filter: [
       "all",
@@ -83,9 +92,14 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
     id: "footways",
     type: "line",
     source: "foothill",
+    layout: {
+      "line-join": "round",
+      "line-cap": "round"
+    },
     paint: {
-      "line-color": "#cc8989",
-      "line-width": 6,
+      "line-color": "#81c784",
+      "line-width": 4,
+      "line-opacity": 0.9
     },
     filter: [
       "all",
@@ -105,8 +119,9 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
     type: "line",
     source: "foothill",
     paint: {
-      "line-color": "#FF8989",
+      "line-color": "#ef83b0",
       "line-width": 6,
+      "line-opacity": 0.8
     },
     filter: [
       "all",
@@ -121,9 +136,10 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
     type: "line",
     source: "foothill",
     paint: {
-      "line-color": "#cc8989",
-      "line-width": 6,
-      "line-dasharray": [0.5, 0.5],
+      "line-color": "#ffe880",
+      "line-width": 4,
+      "line-dasharray": [1.5, 1.5],
+      "line-opacity": 0.9
     },
     filter: [
       "all",
@@ -132,14 +148,40 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
     ],
   });
 
+  //Elevators
+  map.addLayer({
+    id: "elevator",
+    type: "line",
+    source: "foothill",
+    layout: {
+      "line-join": "round",
+      "line-cap": "round"
+    },
+    paint: {
+      "line-color": "#ffb74d",
+      "line-width": 8,
+      "line-opacity": 0.9
+    },
+    filter: [
+      "all",
+      ["==", ["geometry-type"], "LineString"],
+      ["==", ["get", "elevator"], "yes"],
+    ],
+  });
+
   // Roads
   map.addLayer({
     id: "roads",
     type: "line",
     source: "foothill",
+    layout: {
+      "line-join": "round",
+      "line-cap": "round"
+    },
     paint: {
-      "line-color": "#bae6de",
-      "line-width": 8,
+      "line-color": "#b0bec5",
+      "line-width": 6,
+      "line-opacity": 0.8
     },
     filter: [
       "all",
@@ -158,7 +200,7 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
           type: "LineString",
           coordinates: path.path,
         },
-        properties: {} // Add empty properties to satisfy GeoJSON type
+        properties: {}
       } as Feature<LineString>,
     });
 
@@ -166,10 +208,15 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
       id: 'route-line',
       type: 'line',
       source: 'route',
+      layout: {
+        "line-join": "round",
+        "line-cap": "round"
+      },
       paint: {
-        'line-color': '#ffff00',
-        'line-width': 8,
-        'line-opacity': 0.7
+        'line-color': '#ffd600',
+        'line-width': 6,
+        'line-opacity': 0.8,
+        'line-dasharray': [2, 2]
       }
     });
   }
@@ -182,11 +229,22 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
     layout: {
       "text-field": ["get", "name"],
       "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-      "text-size": 12,
+      "text-size": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        14, 6,
+        17, 10,
+        18, 14
+      ],
       "text-allow-overlap": false,
+      "text-ignore-placement": false,
+      "text-optional": true
     },
     paint: {
-      "text-color": "#333",
+      "text-color": "#37474f",
+      "text-halo-color": "#ffffff",
+      "text-halo-width": 1
     },
     filter: [
       "all",
@@ -201,18 +259,61 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
     type: "symbol",
     source: "foothill",
     layout: {
-      "text-field": "stairs",
+      "text-field": "Stairs",
       "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-      "text-size": 12,
+      "text-size": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        14, 6,
+        17, 10,
+        18, 14
+      ],
       "text-allow-overlap": false,
+      "text-ignore-placement": false,
+      "text-optional": true
     },
     paint: {
-      "text-color": "#333",
+      "text-color": "#d32f2f",
+      "text-halo-color": "#ffffff",
+      "text-halo-width": 1
     },
     filter: [
       "all",
       ["==", ["geometry-type"], "LineString"],
       ["==", ["get", "highway"], "steps"],
+    ],
+  });
+
+  // Elevator labels
+  map.addLayer({
+    id: "elevator-labels",
+    type: "symbol",
+    source: "foothill",
+    layout: {
+      "text-field": "Elevator",
+      "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+      "text-size": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        14, 6,
+        17, 10,
+        18, 14
+      ],
+      "text-allow-overlap": false,
+      "text-ignore-placement": false,
+      "text-optional": true
+    },
+    paint: {
+      "text-color": "#f57c00",
+      "text-halo-color": "#ffffff",
+      "text-halo-width": 1
+    },
+    filter: [
+      "all",
+      ["==", ["geometry-type"], "LineString"],
+      ["==", ["get", "elevator"], "yes"],
     ],
   });
 }; 

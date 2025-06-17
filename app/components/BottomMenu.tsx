@@ -192,6 +192,7 @@ interface BottomMenuProps {
   onDestinationChange: (coordinates: [number, number] | [number, number][] | null) => void;
   onStartLocationChange: (coordinates: [number, number] | [number, number][] | null) => void;
   onGoClick: () => void;
+  onExpand: (isExpanded: boolean) => void;
 }
 
 export default function BottomMenu({ 
@@ -199,11 +200,17 @@ export default function BottomMenu({
   onStepFreeChange, 
   onDestinationChange,
   onStartLocationChange,
-  onGoClick
+  onGoClick,
+  onExpand
 }: BottomMenuProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedDestination, setSelectedDestination] = useState('');
   const [selectedStart, setSelectedStart] = useState('Current Location');
+
+  const handleExpand = (expanded: boolean) => {
+    setIsExpanded(expanded);
+    onExpand(expanded);
+  };
 
   const handleDestinationChange = (value: string) => {
     setSelectedDestination(value);
@@ -233,7 +240,7 @@ export default function BottomMenu({
     >
       {/* Arrow button */}
       <button
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={() => handleExpand(!isExpanded)}
         style={{
           position: 'absolute',
           left: '20px',
