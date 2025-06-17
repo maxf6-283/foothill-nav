@@ -31,6 +31,7 @@ export default function Map() {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [pathError, setPathError] = useState<string | null>(null);
   const [isMenuExpanded, setIsMenuExpanded] = useState(false);
+  const currentPopupRef = useRef<maplibregl.Popup | null>(null);
 
   // Function to update markers
   const updateMarkers = (start: [number, number] | null, end: [number, number] | null) => {
@@ -114,6 +115,20 @@ export default function Map() {
     
     console.log("calculating path");
 
+    // Remove existing route layer if it exists
+    if (mapRef.current.getLayer('route-line')) {
+      mapRef.current.removeLayer('route-line');
+    }
+    if (mapRef.current.getSource('route')) {
+      mapRef.current.removeSource('route');
+    }
+
+    // Remove existing popup if it exists
+    if (currentPopupRef.current) {
+      currentPopupRef.current.remove();
+      currentPopupRef.current = null;
+    }
+
     // Get all line features from the data
     const lineFeatures = dataRef.current?.features.filter(
       feature => feature.geometry.type === 'LineString'
@@ -184,16 +199,6 @@ export default function Map() {
       }
     }
 
-    
-
-    // Remove existing route layer if it exists
-    if (mapRef.current.getLayer('route-line')) {
-      mapRef.current.removeLayer('route-line');
-    }
-    if (mapRef.current.getSource('route')) {
-      mapRef.current.removeSource('route');
-    }
-
     // Add new route
     if (path) {
       setPathError(null);
@@ -223,6 +228,27 @@ export default function Map() {
           'line-opacity': 0.7
         }
       });
+
+      // Calculate and display time
+      const seconds = Math.round(path.weight / 1.3);
+      const minutes = Math.round(seconds / 60);
+      const timeString = minutes > 0 
+        ? `${minutes} minute${minutes > 1 ? 's' : ''}`
+        : `${Math.round(seconds/10)*10} seconds`;
+
+      // Add popup at the start of the route
+      const popup = new maplibregl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        offset: 25
+      });
+
+      popup.setLngLat(path.path[0] as [number, number])
+        .setHTML(`<div style="font-size: 18px; font-weight: 500; color: black;">${timeString}</div>`)
+        .addTo(mapRef.current);
+
+      // Store the popup reference
+      currentPopupRef.current = popup;
 
       // Fit map to route bounds
       const bounds = path.path.reduce((bounds, coord) => {
