@@ -241,25 +241,19 @@ export default function Map() {
   };
 
   // Function to update user location marker
-  const updateUserLocationMarker = (coordinates: [number, number], heading: number | null = null) => {
+  const updateUserLocationMarker = (coordinates: [number, number]) => {
     if (!mapRef.current) return;
     if (!mapRef.current.isStyleLoaded()) {
-      mapRef.current.on("load", () => {updateUserLocationMarker(coordinates, heading)});
-      return;
+      mapRef.current.on("load", () => {updateUserLocationMarker(coordinates)});
+      return
     }
 
-    // Remove existing user location markers if they exist
+    // Remove existing user location marker if it exists
     if (mapRef.current.getLayer('user-location')) {
       mapRef.current.removeLayer('user-location');
     }
     if (mapRef.current.getSource('user-location')) {
       mapRef.current.removeSource('user-location');
-    }
-    if (mapRef.current.getLayer('user-heading')) {
-      mapRef.current.removeLayer('user-heading');
-    }
-    if (mapRef.current.getSource('user-heading')) {
-      mapRef.current.removeSource('user-heading');
     }
 
     // Add new user location marker
@@ -286,36 +280,6 @@ export default function Map() {
         'circle-stroke-color': '#ffffff'
       }
     });
-
-    // Add heading indicator if we have a heading
-    if (heading !== null) {
-      mapRef.current.addSource('user-heading', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: coordinates
-          },
-          properties: {
-            heading: heading
-          }
-        }
-      });
-
-      mapRef.current.addLayer({
-        id: 'user-heading',
-        type: 'symbol',
-        source: 'user-heading',
-        layout: {
-          'icon-image': 'arrow',
-          'icon-rotate': ['get', 'heading'],
-          'icon-rotation-alignment': 'map',
-          'icon-allow-overlap': true,
-          'icon-ignore-placement': true
-        }
-      });
-    }
   };
 
   useEffect(() => {
@@ -329,24 +293,15 @@ export default function Map() {
         "https://api.maptiler.com/maps/basic-v2/style.json?key=IB3MIEFaSnwKWw8vcwGF",
       center: [-122.128, 37.3613],
       zoom: 16,
-      // maxBounds: [
-      //   [-122.136, 37.357],
-      //   [-122.1205, 37.367],
-      // ],
+      maxBounds: [
+        [-122.136, 37.357],
+        [-122.1205, 37.367],
+      ],
     });
 
     mapRef.current = map;
 
     map.on("load", () => {
-      // Add arrow image for heading indicator
-      const arrowImage = new Image(24, 24);
-      arrowImage.onload = () => {
-        if (!map.hasImage('arrow')) {
-          map.addImage('arrow', arrowImage);
-        }
-      };
-      arrowImage.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 0L24 12H14V24H10V12H0L12 0z" fill="%234285F4"/></svg>';
-
       fetch("/foothill.json")
         .then((res) => res.json())
         .then((data) => {
@@ -447,8 +402,8 @@ export default function Map() {
           position.coords.latitude
         ];
         setUserLocation(newLocation);
-        updateUserLocationMarker(newLocation, position.coords.heading);
-        setLocationError(null);
+        updateUserLocationMarker(newLocation);
+        setLocationError(null); // Clear any previous errors
       },
       (error) => {
         let errorMessage = "Error getting location: ";
@@ -466,6 +421,44 @@ export default function Map() {
             errorMessage += error.message || "Unknown error";
         }
         setLocationError(errorMessage);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000, // Increased timeout to 10 seconds
+        maximumAge: 0
+      }
+    );
+
+    // Also try to get an immediate position fix
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newLocation: [number, number] = [
+          position.coords.longitude,
+          position.coords.latitude
+        ];
+        setUserLocation(newLocation);
+        updateUserLocationMarker(newLocation);
+        setLocationError(null);
+      },
+      (error) => {
+        // Only set error if we don't already have a location from watchPosition
+        if (!userLocation) {
+          let errorMessage = "Error getting initial location: ";
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage += "Please allow location access in your browser settings";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage += "Location information is unavailable. Please check your device's location services";
+              break;
+            case error.TIMEOUT:
+              errorMessage += "Location request timed out. Please try again";
+              break;
+            default:
+              errorMessage += error.message || "Unknown error";
+          }
+          setLocationError(errorMessage);
+        }
       },
       {
         enableHighAccuracy: true,
