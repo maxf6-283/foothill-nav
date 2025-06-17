@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { locations } from '../locations';
+import { locations, Location } from '../locations';
 
 interface LocationDropdownProps {
   label: string;
@@ -190,6 +190,7 @@ interface BottomMenuProps {
   isStepFree: boolean;
   onStepFreeChange: (value: boolean) => void;
   onDestinationChange: (coordinates: [number, number] | [number, number][] | null) => void;
+  onDestinationRefChange: (name: Location | null) => void;
   onStartLocationChange: (coordinates: [number, number] | [number, number][] | null) => void;
   onGoClick: () => void;
   onExpand: (isExpanded: boolean) => void;
@@ -199,6 +200,7 @@ export default function BottomMenu({
   isStepFree, 
   onStepFreeChange, 
   onDestinationChange,
+  onDestinationRefChange,
   onStartLocationChange,
   onGoClick,
   onExpand
@@ -216,6 +218,7 @@ export default function BottomMenu({
     setSelectedDestination(value);
     const location = locations.find(loc => loc.name === value);
     onDestinationChange(location ? location.coordinates : null);
+    onDestinationRefChange(location ? location : null);
   };
 
   const handleStartLocationChange = (value: string) => {

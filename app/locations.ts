@@ -1,6 +1,7 @@
 export interface Location {
   name: string;
   coordinates: [number, number][]; // [longitude, latitude]
+  highlightable?: boolean //true by default
 }
 
 export const locations: Location[] = [
@@ -10,20 +11,23 @@ export const locations: Location[] = [
       [-122.1251737, 37.360561],
       [-122.1246187, 37.3608334],
       [-122.1260305, 37.360264]
-    ]
+    ],
+    highlightable: false
   },
   {
     name: "Lot 1-A",
     coordinates: [
       [-122.1265938, 37.360737],
       [-122.126939, 37.3606062]
-    ]
+    ],
+    highlightable: false
   },
   {
     name: "Lot 1-B",
     coordinates: [
       [-122.1256931, 37.3609855]
-    ]
+    ],
+    highlightable: false
   },
   {
     name: "Lot 1-C",
@@ -31,38 +35,44 @@ export const locations: Location[] = [
       [-122.1251018, 37.3614639],
       [-122.1252463, 37.3614345],
       [-122.124822, 37.361246]
-    ]
+    ],
+    highlightable: false
   },
   {
     name: "Lot 1-D",
     coordinates: [
       [-122.1254695, 37.3618776]
-    ]
+    ],
+    highlightable: false
   },
   {
     name: "Lot 1-E",
     coordinates: [
       [-122.1246747, 37.3619417]
-    ]
+    ],
+    highlightable: false
   },
   {
     name: "Lot 1-G",
     coordinates: [
       [-122.1224713, 37.3603082]
-    ]
+    ],
+    highlightable: false
   },
   {
     name: "Lot 1-H",
     coordinates: [
       [-122.1235123, 37.3614704]
-    ]
+    ],
+    highlightable: false
   },
   {
     name: "Lot 2",
     coordinates: [
       [-122.1285068, 37.3632446],
       [-122.1275378, 37.3637314]
-    ]
+    ],
+    highlightable: false
   },
   {
     name: "Lot 2-A",
@@ -70,7 +80,8 @@ export const locations: Location[] = [
       [-122.1259506, 37.3636448],
       [-122.1253619, 37.3626018],
       [-122.12594, 37.3633841]
-    ]
+    ],
+    highlightable: false
   },
   {
     name: "Lot 3",
@@ -78,7 +89,8 @@ export const locations: Location[] = [
       [-122.1296675, 37.363474],
       [-122.1307563, 37.3632094],
       [-122.1310305, 37.3635775]
-    ]
+    ],
+    highlightable: false
   },
   {
     name: "Lot 4",
@@ -86,26 +98,30 @@ export const locations: Location[] = [
       [-122.1330348, 37.3623985],
       [-122.1321849, 37.3630562],
       [-122.1319978, 37.3629473]
-    ]
+    ],
+    highlightable: false
   },
   {
     name: "Lot 5",
     coordinates: [
       [-122.1307338, 37.3605939]
-    ]
+    ],
+    highlightable: false
   },
   {
     name: "Lot 6",
     coordinates: [
       [-122.1299358, 37.3601415],
       [-122.1303023, 37.3600101]
-    ]
+    ],
+    highlightable: false
   },
   {
     name: "Lot 7 (staff)",
     coordinates: [
       [-122.1280499, 37.3590505]
-    ]
+    ],
+    highlightable: false
   },
   {
     name: "Lot 8",
@@ -114,13 +130,14 @@ export const locations: Location[] = [
       [-122.1278903, 37.3592244],
       [-122.1268823, 37.3597405],
       [-122.127182, 37.3599049]
-    ]
+    ],
+    highlightable: false
   },
   {
     name: "Foothill College Observatory",
     coordinates: [
       [-122.1318169, 37.3629361]
-    ]
+    ],
   },
   {
     name: "Hubert H. Semans Library",

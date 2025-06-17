@@ -9,6 +9,7 @@ import { addMapLayers } from "./mapLayers";
 import BottomMenu from "./components/BottomMenu";
 import { Feature, FeatureCollection, GeoJsonProperties, Geometry, LineString, Position } from "geojson";
 import { Path } from "geojson-path-finder/dist/esm/types";
+import { Location } from "./locations"
 
 interface FeatureProperties {
   highway?: string;
@@ -26,6 +27,7 @@ export default function Map() {
   const [lngLat, setLngLat] = useState({ lng: 0, lat: 0 });
   const [isStepFree, setIsStepFree] = useState(false);
   const [destination, setDestination] = useState<[number, number] | [number, number][] | null>(null);
+  const [destinationRef, setDestinationRef] = useState<Location | null>(null);
   const [startLocation, setStartLocation] = useState<[number, number] | [number, number][] | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -202,6 +204,42 @@ export default function Map() {
     // Add new route
     if (path) {
       setPathError(null);
+
+      // Remove existing highlight layer if it exists
+      if (mapRef.current.getLayer('destination-highlight')) {
+        mapRef.current.removeLayer('destination-highlight');
+      }
+      if (mapRef.current.getSource('destination-highlight')) {
+        mapRef.current.removeSource('destination-highlight');
+      }
+
+      if (destinationRef && destinationRef.highlightable != false) {
+        console.log("features:", dataRef.current?.features)
+        const destinationBuilding = dataRef.current?.features.find(feature => 
+          feature.properties?.name == destinationRef.name
+        );
+
+        console.log("feature:", destinationBuilding)
+
+        if (destinationBuilding) {
+          mapRef.current.addSource('destination-highlight', {
+            type: 'geojson',
+            data: destinationBuilding
+          });
+
+          mapRef.current.addLayer({
+            id: 'destination-highlight',
+            type: 'fill',
+            source: 'destination-highlight',
+            paint: {
+              'fill-color': '#ffd700',
+              'fill-opacity': 0.5,
+              'fill-outline-color': '#ffd700'
+            }
+          });
+        }
+      }
+
       mapRef.current.addSource("route", {
         type: "geojson",
         data: {
@@ -604,6 +642,7 @@ export default function Map() {
         isStepFree={isStepFree} 
         onStepFreeChange={setIsStepFree}
         onDestinationChange={setDestination}
+        onDestinationRefChange={setDestinationRef}
         onStartLocationChange={setStartLocation}
         onGoClick={() => {
           calculatePath();
