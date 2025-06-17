@@ -28,6 +28,7 @@ export default function Map() {
   const [isStepFree, setIsStepFree] = useState(false);
   const [destination, setDestination] = useState<[number, number] | [number, number][] | null>(null);
   const [destinationRef, setDestinationRef] = useState<Location | null>(null);
+  const [startRef, setStartRef] = useState<Location | null>(null);
   const [startLocation, setStartLocation] = useState<[number, number] | [number, number][] | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -100,7 +101,7 @@ export default function Map() {
     if (mapRef.current.getSource('end-marker')) {
       mapRef.current.removeSource('end-marker');
     }
-    
+
     if (start) {
       mapRef.current.addSource('start-marker', {
         type: 'geojson',
@@ -155,13 +156,9 @@ export default function Map() {
     }
   };
 
-  const calculatePath = () => {
-    if (!mapRef.current || !pathfinderRef.current || !destination || (!startLocation && !userLocation)) {
-      setPathError("Please select a destination");
-      return;
-    }
-    
-    console.log("calculating path");
+  const addRoute = (startPoint: [number, number] | null, endPoint: [number, number] | null, path: Path<Feature<Geometry, GeoJsonProperties>> | undefined) => {
+    if (!mapRef.current)
+      return
 
     // Remove existing route layer if it exists
     if (mapRef.current.getLayer('route-line')) {
@@ -175,76 +172,6 @@ export default function Map() {
     if (currentPopupRef.current) {
       currentPopupRef.current.remove();
       currentPopupRef.current = null;
-    }
-
-    // Get all line features from the data
-    const lineFeatures = dataRef.current?.features.filter(
-      feature => feature.geometry.type === 'LineString'
-    ) as Feature<LineString>[] || [];
-    
-    let endList: [number, number][] = []
-    let startList: [number, number][] = []
-
-    if(destination.length == 0) {
-      //TODO: raise error of some kind
-    } else if (typeof destination[0] == 'number') {
-      endList = [destination as [number, number]]
-    } else {
-      endList = destination as [number, number][]
-    }
-
-    if (startLocation == null) {
-      //snap user location
-
-      let minDist = Infinity;
-      let snappedUserLoc: [number, number] | null = null;
-
-      for (const feature of lineFeatures) {
-        if (feature.geometry.type != "LineString" || feature.properties?.waterway == "stream"){
-          continue
-        }
-
-        const line = feature.geometry;
-
-        for(const position of line.coordinates) {
-          const dist = turf.distance(position, userLocation as [number, number])
-          if(dist < minDist) {
-            minDist = dist
-            snappedUserLoc = position as [number, number]
-          }
-        }
-      }
-
-      console.log("snapped ", userLocation, " to ", snappedUserLoc)
-
-      startList = [snappedUserLoc as [number, number]]
-    } else if(startLocation.length == 0) {
-      //TODO: raise error of some kind
-    } else if (typeof startLocation[0] == 'number') {
-      startList = [startLocation as [number, number]]
-    } else {
-      startList = startLocation as [number, number][]
-    }
-
-    let path: Path<Feature<Geometry, GeoJsonProperties>> | undefined;
-    let startPoint: [number, number] | null = null;
-    let endPoint: [number, number] | null = null;
-
-    let bestLength = Infinity;
-
-    for(const start of startList) {
-      for(const end of endList) {
-        const new_path = pathfinderRef.current.findPath(
-          turf.point(start),
-          turf.point(end)
-        );
-        if(new_path != undefined && (path == undefined || new_path.weight < bestLength)) {
-          path = new_path
-          bestLength = new_path.weight
-          startPoint = start
-          endPoint = end
-        }
-      }
     }
 
     // Add new route
@@ -261,7 +188,7 @@ export default function Map() {
 
       if (destinationRef && destinationRef.highlightable != false) {
         console.log("features:", dataRef.current?.features)
-        const destinationBuilding = dataRef.current?.features.find(feature => 
+        const destinationBuilding = dataRef.current?.features.find(feature =>
           feature.properties?.name == destinationRef.name
         );
 
@@ -316,9 +243,9 @@ export default function Map() {
       // Calculate and display time
       const seconds = Math.round(path.weight / 1.3);
       const minutes = Math.round(seconds / 60);
-      const timeString = minutes > 0 
+      const timeString = minutes > 0
         ? `${minutes} minute${minutes > 1 ? 's' : ''}`
-        : `${Math.round(seconds/10)*10} seconds`;
+        : `${Math.round(seconds / 10) * 10} seconds`;
 
       // Add popup at the start of the route
       const popup = new maplibregl.Popup({
@@ -348,18 +275,99 @@ export default function Map() {
       setPathError("No viable path found between the selected locations");
     }
     updateMarkers(startPoint, endPoint);
+  }
+
+  const calculatePath = () => {
+    if (!mapRef.current || !pathfinderRef.current || !destination || (!startLocation && !userLocation)) {
+      setPathError("Please select a destination");
+      return;
+    }
+
+    console.log("calculating path");
+
+    // Get all line features from the data
+    const lineFeatures = dataRef.current?.features.filter(
+      feature => feature.geometry.type === 'LineString'
+    ) as Feature<LineString>[] || [];
+
+    let endList: [number, number][] = []
+    let startList: [number, number][] = []
+
+    if (destination.length == 0) {
+      //TODO: raise error of some kind
+    } else if (typeof destination[0] == 'number') {
+      endList = [destination as [number, number]]
+    } else {
+      endList = destination as [number, number][]
+    }
+
+    if (startLocation == null) {
+      //snap user location
+
+      let minDist = Infinity;
+      let snappedUserLoc: [number, number] | null = null;
+
+      for (const feature of lineFeatures) {
+        if (feature.geometry.type != "LineString" || feature.properties?.waterway == "stream") {
+          continue
+        }
+
+        const line = feature.geometry;
+
+        for (const position of line.coordinates) {
+          const dist = turf.distance(position, userLocation as [number, number])
+          if (dist < minDist) {
+            minDist = dist
+            snappedUserLoc = position as [number, number]
+          }
+        }
+      }
+
+      console.log("snapped ", userLocation, " to ", snappedUserLoc)
+
+      startList = [snappedUserLoc as [number, number]]
+    } else if (startLocation.length == 0) {
+      //TODO: raise error of some kind
+    } else if (typeof startLocation[0] == 'number') {
+      startList = [startLocation as [number, number]]
+    } else {
+      startList = startLocation as [number, number][]
+    }
+
+    let path: Path<Feature<Geometry, GeoJsonProperties>> | undefined;
+    let startPoint: [number, number] | null = null;
+    let endPoint: [number, number] | null = null;
+
+    let bestLength = Infinity;
+
+    for (const start of startList) {
+      for (const end of endList) {
+        const new_path = pathfinderRef.current.findPath(
+          turf.point(start),
+          turf.point(end)
+        );
+        if (new_path != undefined && (path == undefined || new_path.weight < bestLength)) {
+          path = new_path
+          bestLength = new_path.weight
+          startPoint = start
+          endPoint = end
+        }
+      }
+    }
+
+    addRoute(startPoint, endPoint, path)
   };
 
   // Function to check if a point is inside the campus
   const isPointInCampus = (point: [number, number]) => {
     if (!dataRef.current) return false;
-    
+
     const campusFeature = dataRef.current.features.find(
       feature => feature.properties?.['@id'] === 'way/29120897'
     ) as Feature<Polygon> | undefined;
-    
+
     if (!campusFeature || campusFeature.geometry.type !== 'Polygon') return false;
-    
+
     return turf.booleanPointInPolygon(point, campusFeature);
   };
 
@@ -367,7 +375,7 @@ export default function Map() {
   const updateUserLocationMarker = (coordinates: [number, number]) => {
     if (!mapRef.current) return;
     if (!mapRef.current.isStyleLoaded()) {
-      mapRef.current.on("load", () => {updateUserLocationMarker(coordinates)});
+      mapRef.current.on("load", () => { updateUserLocationMarker(coordinates) });
       return
     }
 
@@ -409,6 +417,61 @@ export default function Map() {
     });
   };
 
+  const autoSelectLot = () => {
+    if (!pathfinderRef.current || !destination)
+      return;
+
+    const lineFeatures = dataRef.current?.features.filter(
+      feature => feature.geometry.type === 'LineString'
+    ) as Feature<LineString>[] || [];
+
+    let endList: [number, number][] = []
+
+    if (destination.length == 0) {
+      //TODO: raise error of some kind
+    } else if (typeof destination[0] == 'number') {
+      endList = [destination as [number, number]]
+    } else {
+      endList = destination as [number, number][]
+    }
+
+    let lots = locations.filter(e => e.lot == "student")
+
+    let path: Path<Feature<Geometry, GeoJsonProperties>> | undefined;
+    let best_lot: Location | null = null;
+    let startPoint: [number, number] | null = null;
+    let endPoint: [number, number] | null = null;
+
+    let bestLength = Infinity;
+
+    for (const lot of lots) {
+      for (const start of lot.coordinates) {
+        for (const end of endList) {
+          const new_path = pathfinderRef.current.findPath(
+            turf.point(start),
+            turf.point(end)
+          );
+          if (new_path != undefined && (path == undefined || new_path.weight < bestLength)) {
+            path = new_path;
+            bestLength = new_path.weight;
+            best_lot = lot;
+            startPoint = start;
+            endPoint = end;
+          }
+        }
+      }
+    }
+
+    console.log("Best lot:", best_lot)
+
+    if (best_lot) {
+      setSelectedStart(best_lot.name)
+      setStartLocation(best_lot.coordinates)
+      
+      addRoute(startPoint, endPoint, path)
+    }
+  }
+
   useEffect(() => {
     if (mapRef.current) {
       return;
@@ -433,23 +496,23 @@ export default function Map() {
         .then((res) => res.json())
         .then((data) => {
           dataRef.current = data;
-          
+
           // Create pathfinder instance
           const pathfinder = new PathFinder<Feature, FeatureProperties>(data, {
             weight: (a: Position, b: Position, properties: FeatureProperties) => {
-              const distance = turf.distance(a, b, {units: "meters"})
-      
+              const distance = turf.distance(a, b, { units: "meters" })
+
               if (properties.waterway == "stream") {
                 return undefined
               }
-              else if (properties.highway === "steps") {
+              else if (properties.highway === "steps" || properties.highway === "steep footway") {
                 return (isStepFree ? 1000 : 1.5) * distance;
               }
               else if (properties.highway === "footway" || properties.highway === "path" || properties.foot === "yes") {
                 return distance;
               }
               else if (properties.elevator === "yes") {
-                return 30;
+                return 45;
               }
               return 2 * distance;
             }
@@ -471,15 +534,15 @@ export default function Map() {
       let snappedLoc: [number, number] | null = null;
 
       for (const feature of lineFeatures) {
-        if (feature.geometry.type != "LineString" || feature.properties?.waterway == "stream"){
+        if (feature.geometry.type != "LineString" || feature.properties?.waterway == "stream") {
           continue
         }
 
         const line = feature.geometry;
 
-        for(const position of line.coordinates) {
+        for (const position of line.coordinates) {
           const dist = turf.distance(position, [e.lngLat.lng, e.lngLat.lat])
-          if(dist < minDist) {
+          if (dist < minDist) {
             minDist = dist
             snappedLoc = position as [number, number]
           }
@@ -487,7 +550,7 @@ export default function Map() {
       }
 
       console.log("snapped ", [e.lngLat.lng, e.lngLat.lat], " to ", snappedLoc)
-      if(snappedLoc) 
+      if (snappedLoc)
         navigator.clipboard.writeText("[" + snappedLoc[0] + ", " + snappedLoc[1] + "]")
     });
 
@@ -495,11 +558,11 @@ export default function Map() {
     map.on("click", (e) => {
       // Check if we clicked on a building that matches a location
       const clickedFeatures = map.queryRenderedFeatures(e.point);
-      const clickedBuilding = clickedFeatures.find(feature =>  
+      const clickedBuilding = clickedFeatures.find(feature =>
         locations.find(loc => loc.name == feature.properties?.name)
       );
 
-      console.log("b",clickedBuilding)
+      console.log("b", clickedBuilding)
 
       if (clickedBuilding) {
         // Find matching location
@@ -628,19 +691,19 @@ export default function Map() {
     // Update pathfinder weights
     pathfinderRef.current = new PathFinder<Feature, FeatureProperties>(dataRef.current, {
       weight: (a: Position, b: Position, properties: FeatureProperties) => {
-        const distance = turf.distance(a, b, {units: "meters"})
+        const distance = turf.distance(a, b, { units: "meters" })
 
         if (properties.waterway == "stream") {
           return undefined
         }
-        else if (properties.highway === "steps") {
+        else if (properties.highway === "steps" || properties.highway === "steep footway") {
           return (isStepFree ? 1000 : 1.5) * distance;
         }
         else if (properties.highway === "footway" || properties.highway === "path" || properties.foot === "yes") {
           return distance;
         }
         else if (properties.elevator === "yes") {
-          return 30
+          return 45
         }
         return 2 * distance;
       }
@@ -712,22 +775,13 @@ export default function Map() {
         </div>
       )}
 
-      <BottomMenu 
-        isStepFree={isStepFree} 
+      <BottomMenu
+        isStepFree={isStepFree}
         onStepFreeChange={setIsStepFree}
-        onDestinationChange={(dest) => {
-          setDestination(dest);
-          if (dest && typeof dest[0] === 'number') {
-            const matchingLocation = locations.find(loc => 
-              JSON.stringify(loc.coordinates) === JSON.stringify(dest)
-            );
-            if (matchingLocation) {
-              setSelectedDestination(matchingLocation.name);
-              setDestinationRef(matchingLocation);
-            }
-          }
-        }}
+        onDestinationChange={setDestination}
         onDestinationRefChange={setDestinationRef}
+        onStartRefChange={setStartRef}
+        startRef={startRef}
         onStartLocationChange={setStartLocation}
         onGoClick={() => {
           calculatePath();
@@ -741,6 +795,7 @@ export default function Map() {
         onSelectedStartChange={setSelectedStart}
         isGoDisabled={!selectedDestination}
         isUserInCampus={isUserInCampus}
+        onAutoSelectLot={autoSelectLot}
       />
     </>
   );

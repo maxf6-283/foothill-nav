@@ -252,6 +252,8 @@ interface BottomMenuProps {
   onStepFreeChange: (value: boolean) => void;
   onDestinationChange: (coordinates: [number, number] | [number, number][] | null) => void;
   onDestinationRefChange: (name: Location | null) => void;
+  onStartRefChange: (name: Location | null) => void;
+  startRef: Location | null;
   onStartLocationChange: (coordinates: [number, number] | [number, number][] | null) => void;
   onGoClick: () => void;
   isMenuExpanded: boolean;
@@ -262,6 +264,7 @@ interface BottomMenuProps {
   onSelectedStartChange: (destination: string) => void;
   isGoDisabled: boolean;
   isUserInCampus: boolean | null;
+  onAutoSelectLot: () => void;
 }
 
 export default function BottomMenu({ 
@@ -269,6 +272,8 @@ export default function BottomMenu({
   onStepFreeChange, 
   onDestinationChange,
   onDestinationRefChange,
+  onStartRefChange,
+  startRef,
   onStartLocationChange,
   onGoClick,
   isMenuExpanded,
@@ -278,10 +283,12 @@ export default function BottomMenu({
   selectedStart,
   onSelectedStartChange,
   isGoDisabled,
-  isUserInCampus
+  isUserInCampus,
+  onAutoSelectLot
 }: BottomMenuProps) {
   const [isStartValid, setIsStartValid] = useState(true);
   const [isDestinationValid, setIsDestinationValid] = useState(true);
+  const [showTooltip, setShowTooltip] = useState(false);
 
   const handleDestinationChange = (value: string) => {
     onSelectedDestinationChange(value);
@@ -289,11 +296,12 @@ export default function BottomMenu({
     onDestinationChange(location ? location.coordinates : null);
     onDestinationRefChange(location ? location : null);
   };
-
+  
   const handleStartLocationChange = (value: string) => {
     onSelectedStartChange(value);
     const location = locations.find(loc => loc.name === value);
     onStartLocationChange(location ? location.coordinates : null);
+    onStartRefChange(location ? location : null);
   };
 
   const isCurrentLocationValid = selectedStart === "Current Location" ? isUserInCampus === true : true;
@@ -383,6 +391,122 @@ export default function BottomMenu({
               onChange={handleDestinationChange}
               onValidityChange={setIsDestinationValid}
             />
+
+            <div style={{ 
+              display: 'flex', 
+              gap: '10px', 
+              marginBottom: '20px',
+              alignItems: 'center'
+            }}>
+              <button
+                onClick={() => {
+                  onAutoSelectLot()
+                }}
+                disabled={!isDestinationValid}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  backgroundColor: !isDestinationValid ? '#cccccc' : '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '0.9rem',
+                  fontWeight: '500',
+                  cursor: !isDestinationValid ? 'not-allowed' : 'pointer',
+                  transition: 'background-color 0.2s ease-in-out',
+                }}
+                onMouseOver={(e) => {
+                  if (selectedDestination) {
+                    e.currentTarget.style.backgroundColor = '#45a049';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (selectedDestination) {
+                    e.currentTarget.style.backgroundColor = '#4CAF50';
+                  }
+                }}
+              >
+                Auto-start from closest lot
+              </button>
+
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => {
+                    if (startRef?.link) {
+                      window.open(startRef.link, '_blank');
+                    }
+                  }}
+                  disabled={!startRef?.link}
+                  aria-label="Open starting location in google maps"
+                  onMouseEnter={() => setShowTooltip(true)}
+                  onMouseLeave={() => setShowTooltip(false)}
+                  style={{
+                    padding: '10px',
+                    backgroundColor: !startRef?.link ? '#cccccc' : '#4285F4',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontSize: '0.9rem',
+                    fontWeight: '500',
+                    cursor: !startRef?.link ? 'not-allowed' : 'pointer',
+                    transition: 'background-color 0.2s ease-in-out',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '40px',
+                    height: '40px',
+                  }}
+                  onMouseOver={(e) => {
+                    if (startRef?.link) {
+                      e.currentTarget.style.backgroundColor = '#3367d6';
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (startRef?.link) {
+                      e.currentTarget.style.backgroundColor = '#4285F4';
+                    }
+                  }}
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                </button>
+                {showTooltip && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '-30px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                      color: 'white',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      fontSize: '0.75rem',
+                      whiteSpace: 'nowrap',
+                      pointerEvents: 'none',
+                      zIndex: 1000,
+                    }}
+                  >
+                    Open starting
+                    <br />
+                    location in
+                    <br />
+                    google maps
+                  </div>
+                )}
+              </div>
+            </div>
 
             <div style={{ marginBottom: '20px' }}>
               <label

@@ -113,6 +113,23 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
     ],
   });
 
+  // Steep path
+  map.addLayer({
+    id: "steep-path",
+    type: "line",
+    source: "foothill",
+    paint: {
+      "line-color": "#ef83b0",
+      "line-width": 6,
+      "line-opacity": 0.8
+    },
+    filter: [
+      "all",
+      ["==", ["geometry-type"], "LineString"],
+      ["==", ["get", "highway"], "steep footway"],
+    ],
+  });
+
   // Steps background
   map.addLayer({
     id: "steps-bg",
@@ -282,6 +299,38 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
       "all",
       ["==", ["geometry-type"], "LineString"],
       ["==", ["get", "highway"], "steps"],
+    ],
+  });
+
+  // Steep path labels
+  map.addLayer({
+    id: "steep-path-labels",
+    type: "symbol",
+    source: "foothill",
+    layout: {
+      "text-field": "Steep path",
+      "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+      "text-size": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        14, 6,
+        17, 10,
+        18, 14
+      ],
+      "text-allow-overlap": false,
+      "text-ignore-placement": false,
+      "text-optional": true
+    },
+    paint: {
+      "text-color": "#d32f2f",
+      "text-halo-color": "#ffffff",
+      "text-halo-width": 1
+    },
+    filter: [
+      "all",
+      ["==", ["geometry-type"], "LineString"],
+      ["==", ["get", "highway"], "steep footway"],
     ],
   });
 

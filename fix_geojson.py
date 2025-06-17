@@ -13,7 +13,7 @@ for feature in foothill["features"]:
     if feature["geometry"]["type"] == "LineString":
         for point in feature["geometry"]["coordinates"]:
             for point_2 in points_list:
-                if haversine(point[::-1], point_2[::-1], unit=Unit.METERS) < 1.0:
+                if haversine(point[::-1], point_2[::-1], unit=Unit.METERS) < 0.25:
                     if point[0] != point_2[0] or point[1] != point_2[1]:
                         print("combined points", haversine(point[::-1], point_2[::-1], unit=Unit.METERS), "meters apart")
                     point[0] = point_2[0]
