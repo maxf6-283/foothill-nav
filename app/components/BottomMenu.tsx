@@ -49,7 +49,7 @@ function LocationDropdown({
 
   const validateInput = (text: string) => {
     const isValid = text === "Current Location" ? isUserInCampus === true : 
-      locations.some(loc => loc.name === text);
+      !!text.match("^-?\\d+(\\.\\d*)?, ?\\d+(.?\\d*)$")?.length || locations.some(loc => loc.name === text);
     onValidityChange?.(isValid);
     return isValid;
   };
@@ -265,6 +265,8 @@ interface BottomMenuProps {
   isGoDisabled: boolean;
   isUserInCampus: boolean | null;
   onAutoSelectLot: () => void;
+  pickMode: null | "destination" | "start";
+  setPickMode: (mode: null | "destination" | "start") => void;
 }
 
 export default function BottomMenu({ 
@@ -284,7 +286,9 @@ export default function BottomMenu({
   onSelectedStartChange,
   isGoDisabled,
   isUserInCampus,
-  onAutoSelectLot
+  onAutoSelectLot,
+  pickMode,
+  setPickMode
 }: BottomMenuProps) {
   const [isStartValid, setIsStartValid] = useState(true);
   const [isDestinationValid, setIsDestinationValid] = useState(true);
@@ -370,27 +374,105 @@ export default function BottomMenu({
               Navigation Menu
             </h2>
             
-            <LocationDropdown
-              label="Select Starting Location"
-              placeholder="Search starting locations..."
-              value={selectedStart}
-              onChange={handleStartLocationChange}
-              includeCurrentLocation={true}
-              onValidityChange={setIsStartValid}
-              customStyles={selectedStart === "Current Location" && (isUserInCampus === false || isUserInCampus === null) ? {
-                color: '#999',
-                fontStyle: 'italic'
-              } : undefined}
-              isUserInCampus={isUserInCampus}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', gap: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <LocationDropdown
+                  label="Select Starting Location"
+                  placeholder="Search starting locations..."
+                  value={selectedStart}
+                  onChange={handleStartLocationChange}
+                  includeCurrentLocation={true}
+                  onValidityChange={setIsStartValid}
+                  customStyles={selectedStart === "Current Location" && (isUserInCampus === false || isUserInCampus === null) ? {
+                    color: '#999',
+                    fontStyle: 'italic'
+                  } : undefined}
+                  isUserInCampus={isUserInCampus}
+                />
+              </div>
+              <button
+                aria-label="Pick start location on map"
+                onClick={() => {
+                  if(pickMode == "start") {
+                    setPickMode(null)
+                  } else {
+                    setPickMode("start")
+                  }
+                }}
+                style={{
+                  marginLeft: 8,
+                  background: pickMode === "start" ? '#4285F4' : '#eee',
+                  border: 'none',
+                  borderRadius: '4px',
+                  width: 36,
+                  height: 36,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: pickMode === "start" ? 'white' : '#333',
+                  outline: pickMode === "start" ? '2px solid #4285F4' : 'none',
+                  boxShadow: pickMode === "start" ? '0 0 0 2px #90caf9' : 'none',
+                  transition: 'background 0.2s, color 0.2s, outline 0.2s',
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="2" x2="12" y2="6" />
+                  <line x1="12" y1="18" x2="12" y2="22" />
+                  <line x1="2" y1="12" x2="6" y2="12" />
+                  <line x1="18" y1="12" x2="22" y2="12" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+            </div>
 
-            <LocationDropdown
-              label="Select Destination"
-              placeholder="Search destinations..."
-              value={selectedDestination}
-              onChange={handleDestinationChange}
-              onValidityChange={setIsDestinationValid}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', gap: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <LocationDropdown
+                  label="Select Destination"
+                  placeholder="Search destinations..."
+                  value={selectedDestination}
+                  onChange={handleDestinationChange}
+                  onValidityChange={setIsDestinationValid}
+                />
+              </div>
+              <button
+                aria-label="Pick destination on map"
+                onClick={() => {
+                  if(pickMode == "destination") {
+                    setPickMode(null)
+                  } else {
+                    setPickMode("destination")
+                  }
+                }}
+                style={{
+                  marginLeft: 8,
+                  background: pickMode === "destination" ? '#4285F4' : '#eee',
+                  border: 'none',
+                  borderRadius: '4px',
+                  width: 36,
+                  height: 36,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: pickMode === "destination" ? 'white' : '#333',
+                  outline: pickMode === "destination" ? '2px solid #4285F4' : 'none',
+                  boxShadow: pickMode === "destination" ? '0 0 0 2px #90caf9' : 'none',
+                  transition: 'background 0.2s, color 0.2s, outline 0.2s',
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="2" x2="12" y2="6" />
+                  <line x1="12" y1="18" x2="12" y2="22" />
+                  <line x1="2" y1="12" x2="6" y2="12" />
+                  <line x1="18" y1="12" x2="22" y2="12" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+            </div>
 
             <div style={{ 
               display: 'flex', 

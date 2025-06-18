@@ -38,6 +38,8 @@ export default function Map() {
   const [selectedDestination, setSelectedDestination] = useState('');
   const [selectedStart, setSelectedStart] = useState('Current Location');
   const [isUserInCampus, setIsUserInCampus] = useState<boolean | null>(null);
+  const [pickMode, setPickMode] = useState<null | "destination" | "start">(null);
+  const pickModeRef = useRef(pickMode)
 
   // Function to update URL parameters
   const updateUrlParams = (start: string, dest: string) => {
@@ -519,9 +521,10 @@ export default function Map() {
           addMapLayers(map, data);
         });
     });
-
     // Add click handler
     map.on("click", (e) => {
+      if(pickModeRef.current)
+        return
       const lineFeatures = dataRef.current?.features.filter(
         feature => feature.geometry.type === 'LineString'
       ) as Feature<LineString>[] || [];
@@ -552,10 +555,12 @@ export default function Map() {
 
     // Add click handler
     map.on("click", (e) => {
+      if (!pickModeRef.current)
+        return
       // Check if we clicked on a building that matches a location
       const clickedFeatures = map.queryRenderedFeatures(e.point);
       const clickedBuilding = clickedFeatures.find(feature =>
-        locations.find(loc => loc.name == feature.properties?.name)
+        locations.some(loc => loc.name == feature.properties?.name)
       );
 
       console.log("b", clickedBuilding)
@@ -564,10 +569,53 @@ export default function Map() {
         // Find matching location
         const matchingLocation = locations.find(loc => loc.name == clickedBuilding.properties.name);
         if (matchingLocation) {
-          setDestination(matchingLocation.coordinates);
-          setSelectedDestination(matchingLocation.name)
-          setDestinationRef(matchingLocation);
+          if (pickModeRef.current == "destination") {
+            setDestination(matchingLocation.coordinates);
+            setSelectedDestination(matchingLocation.name)
+            setDestinationRef(matchingLocation);
+          } else if (pickModeRef.current == "start") {
+            setStartLocation(matchingLocation.coordinates);
+            setSelectedStart(matchingLocation.name)
+            setStartRef(matchingLocation);
+          }
+          setPickMode(null)
           setIsMenuExpanded(true);
+        }
+      } else {
+        const lineFeatures = dataRef.current?.features.filter(
+          feature => feature.geometry.type === 'LineString'
+        ) as Feature<LineString>[] || [];
+  
+        let minDist = Infinity;
+        let snappedLoc: [number, number] | null = null;
+  
+        for (const feature of lineFeatures) {
+          if (feature.geometry.type != "LineString" || feature.properties?.waterway == "stream") {
+            continue
+          }
+  
+          const line = feature.geometry;
+  
+          for (const position of line.coordinates) {
+            const dist = turf.distance(position, [e.lngLat.lng, e.lngLat.lat])
+            if (dist < minDist) {
+              minDist = dist
+              snappedLoc = position as [number, number]
+            }
+          }
+        }
+
+        if (snappedLoc) {
+          if (pickModeRef.current == "destination") {
+            setDestination(snappedLoc)
+            setDestinationRef(null)
+            setSelectedDestination(snappedLoc[0].toString()+ ", "+snappedLoc[1].toString())
+          } else if (pickModeRef.current == "start") {
+            setStartLocation(snappedLoc)
+            setStartRef(null)
+            setSelectedStart(snappedLoc[0].toString()+ ", "+snappedLoc[1].toString())
+          }
+          setPickMode(null)
         }
       }
     });
@@ -706,15 +754,31 @@ export default function Map() {
     });
   }, [isStepFree]);
 
+  useEffect(() => {
+    console.log("pickmode changed to:", pickMode)
+    pickModeRef.current = pickMode
+
+    if(!mapRef.current)
+      return
+
+    if(pickMode) {
+      mapRef.current.getCanvas().style.cursor = "crosshair"
+    }
+    else {
+      mapRef.current.getCanvas().style.cursor = "grab"
+    }
+
+  }, [pickMode])
+
   return (
-    <>
+    <div>
       <div
         ref={mapContainer}
         style={{
           width: "100%",
           height: isMenuExpanded ? "50vh" : "calc(100vh - 60px)",
           position: "relative",
-          transition: "height 0.3s ease-in-out"
+          transition: "height 0.3s ease-in-out",
         }}
       />
 
@@ -792,7 +856,9 @@ export default function Map() {
         isGoDisabled={!selectedDestination}
         isUserInCampus={isUserInCampus}
         onAutoSelectLot={autoSelectLot}
+        pickMode={pickMode}
+        setPickMode={setPickMode}
       />
-    </>
+    </div>
   );
 }
