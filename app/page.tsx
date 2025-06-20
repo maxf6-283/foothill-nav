@@ -22,9 +22,6 @@ export default function Map() {
   const mapRef = useRef<maplibregl.Map>(null);
   const dataRef = useRef<FeatureCollection | null>(null);
   const pathfinderRef = useRef<PathFinder<Feature, FeatureProperties> | null>(null);
-  const [hoveredFeature, setHoveredFeature] = useState<FeatureProperties | null>(null);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [lngLat, setLngLat] = useState({ lng: 0, lat: 0 });
   const [isStepFree, setIsStepFree] = useState(false);
   const [destination, setDestination] = useState<[number, number] | [number, number][] | null>(null);
   const [destinationLocation, setDestinationLocation] = useState<Location | null>(null);
@@ -566,6 +563,9 @@ export default function Map() {
               if (properties.waterway == "stream") {
                 return undefined
               }
+              else if (properties.name == "Loop Road") {
+                return undefined
+              }
               else if (properties.highway === "steps" || properties.highway === "steep footway") {
                 return (stepFree ? 1000 : 1.5) * distance;
               }
@@ -638,18 +638,10 @@ export default function Map() {
             setSelectedDestination(matchingLocation.name)
             setDestinationLocation(matchingLocation);
             destinationLocationRef.current = matchingLocation
-
-            // if(startPositionRef.current || (userLocationRef.current && isUserInCampus)) {
-            //   calculatePath()
-            // }
           } else if (pickModeRef.current == "start") {
             setStartPosition(matchingLocation.coordinates);
             setSelectedStart(matchingLocation.name)
             setStartLocation(matchingLocation);
-
-            // if(destinationRef.current) {
-            //   calculatePath()
-            // }
           }
           setPickMode(null)
           setIsMenuExpanded(true);
@@ -683,47 +675,15 @@ export default function Map() {
             setDestination(snappedLoc)
             setDestinationLocation(null)
             setSelectedDestination(snappedLoc[0].toString()+ ", "+snappedLoc[1].toString())
-
-            // if(startPositionRef.current || (userLocationRef.current && isUserInCampus)) {
-            //   const {path, startPoint, endPoint} = getBestPath(snappedLoc, startPositionRef.current, userLocationRef.current)
-            //   addRoute(startPoint, endPoint, path)
-            // }
           } else if (pickModeRef.current == "start") {
             setStartPosition(snappedLoc)
             setStartLocation(null)
             setSelectedStart(snappedLoc[0].toString()+ ", "+snappedLoc[1].toString())
-
-            // if(destinationRef.current) {
-            //   const {path, startPoint, endPoint} = getBestPath(destinationRef.current, snappedLoc, null)
-            //   addRoute(startPoint, endPoint, path)
-            // }
           }
           setPickMode(null)
         }
       }
     });
-
-    // Mouse move handler
-    map.on("mousemove", (e) => {
-      setLngLat({ lng: e.lngLat.lng, lat: e.lngLat.lat });
-
-      const features = map.queryRenderedFeatures(e.point);
-      if (features.length > 0) {
-        setHoveredFeature(features[0].properties as FeatureProperties);
-        setMousePos({
-          x: e.originalEvent.clientX,
-          y: e.originalEvent.clientY,
-        });
-      } else {
-        setHoveredFeature(null);
-      }
-    });
-
-    // Clear on mouse leave
-    map.on("mouseleave", () => {
-      setHoveredFeature(null);
-    });
-
     return () => map.remove();
   }, []);
 
@@ -823,6 +783,9 @@ export default function Map() {
         if (properties.waterway == "stream") {
           return undefined
         }
+        else if (properties.name == "Loop Road") {
+          return undefined
+        }
         else if (properties.highway === "steps" || properties.highway === "steep footway") {
           return (isStepFree ? 1000 : 1.5) * distance;
         }
@@ -891,38 +854,6 @@ export default function Map() {
           transition: "height 0.3s ease-in-out",
         }}
       />
-
-      {hoveredFeature && (
-        <div
-          style={{
-            position: "fixed",
-            top: mousePos.y + 10,
-            left: mousePos.x + 10,
-            background: "white",
-            padding: "8px",
-            border: "1px solid #ccc",
-            borderRadius: "4px",
-            fontSize: "14px",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-            zIndex: 1000,
-            pointerEvents: "none",
-            color: "black",
-          }}
-        >
-          {Object.entries(hoveredFeature).map(([key, value]) => (
-            <div key={key}>
-              <strong>{key}</strong>: {value?.toString()}
-            </div>
-          ))}
-          <div>
-            <strong>lng</strong>: {lngLat.lng}
-          </div>
-          <div>
-            <strong>lat</strong>: {lngLat.lat}
-          </div>
-        </div>
-      )}
-
       {(locationError || pathError) && (
         <div
           style={{

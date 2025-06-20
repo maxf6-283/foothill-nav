@@ -16,7 +16,8 @@ export const locations: Location[] = [
       [-122.1260305, 37.360264]
     ],
     highlightable: false,
-    lot: "student"
+    lot: "student",
+    link: "https://maps.app.goo.gl/CMfPZhd2Qq9TfL3dA"
   },
   {
     name: "Lot 1-A",
@@ -25,7 +26,6 @@ export const locations: Location[] = [
       [-122.126939, 37.3606062]
     ],
     highlightable: false,
-    lot: "student"
   },
   {
     name: "Lot 1-B",
@@ -33,7 +33,6 @@ export const locations: Location[] = [
       [-122.1256931, 37.3609855]
     ],
     highlightable: true,
-    lot: "student"
   },
   {
     name: "Lot 1-C",
@@ -43,7 +42,6 @@ export const locations: Location[] = [
       [-122.124822, 37.361246]
     ],
     highlightable: true,
-    lot: "student"
   },
   {
     name: "Lot 1-D",
@@ -51,7 +49,6 @@ export const locations: Location[] = [
       [-122.1254695, 37.3618776]
     ],
     highlightable: false,
-    lot: "student"
   },
   {
     name: "Lot 1-E",
@@ -59,7 +56,6 @@ export const locations: Location[] = [
       [-122.1246747, 37.3619417]
     ],
     highlightable: false,
-    lot: "student"
   },
   {
     name: "Lot 1-G",
@@ -67,7 +63,6 @@ export const locations: Location[] = [
       [-122.1224713, 37.3603082]
     ],
     highlightable: false,
-    lot: "student"
   },
   {
     name: "Lot 1-H",
@@ -75,7 +70,8 @@ export const locations: Location[] = [
       [-122.1235123, 37.3614704]
     ],
     highlightable: false,
-    lot: "student"
+    lot: "student",
+    link: "https://maps.app.goo.gl/39cZcJ1snfqsujxe6"
   },
   {
     name: "Lot 2",
@@ -86,7 +82,8 @@ export const locations: Location[] = [
       [-122.1275378, 37.3637314]
     ],
     highlightable: false,
-    lot: "student"
+    lot: "student",
+    link: "https://maps.app.goo.gl/dhWGvUEMgiKkH91L7"
   },
   {
     name: "Lot 2-A",
@@ -96,7 +93,8 @@ export const locations: Location[] = [
       [-122.12564344309362, 37.363703043557905]
     ],
     highlightable: false,
-    lot: "student"
+    lot: "student",
+    link: "https://maps.app.goo.gl/JNdTHfheywyCGeZQ8"
   },
   {
     name: "Lot 3",
@@ -107,7 +105,8 @@ export const locations: Location[] = [
       [-122.1320995, 37.3639472]
     ],
     highlightable: false,
-    lot: "student"
+    lot: "student",
+    link: "https://maps.app.goo.gl/B8fg5EvRv468jK9s6"
   },
   {
     name: "Lot 4",
@@ -120,7 +119,8 @@ export const locations: Location[] = [
       [-122.1322159, 37.3627279]
     ],
     highlightable: false,
-    lot: "student"
+    lot: "student",
+    link: "https://maps.app.goo.gl/wiP4nBxnX39pWP6a6"
   },
   {
     name: "Lot 4-A",
@@ -138,7 +138,8 @@ export const locations: Location[] = [
       [-122.1321849, 37.3630562]
     ],
     highlightable: true,
-    lot: "student"
+    lot: "student",
+    link: "https://maps.app.goo.gl/d1BP5AfcMxiiyLH88"
   },
   {
     name: "Lot 4-C",
@@ -149,7 +150,8 @@ export const locations: Location[] = [
       [-122.13215633434291, 37.36152415370226]
     ],
     highlightable: true,
-    lot: "student"
+    lot: "student",
+    link: "https://maps.app.goo.gl/sKCxJPcSYqpqz9637"
   },
   {
     name: "Lot 5",
@@ -157,7 +159,8 @@ export const locations: Location[] = [
       [-122.1307338, 37.3605939]
     ],
     highlightable: false,
-    lot: "student"
+    lot: "student",
+    link: "https://maps.app.goo.gl/6FPMCCNe9oNDDNYH8"
   },
   {
     name: "Lot 6",
@@ -175,7 +178,8 @@ export const locations: Location[] = [
       [-122.1280499, 37.3590505]
     ],
     highlightable: false,
-    lot: "student"
+    lot: "student",
+    link: "https://maps.app.goo.gl/cbeWJfCeMZnwx41d8"
   },
   {
     name: "Lot 8",

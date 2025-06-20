@@ -389,7 +389,8 @@ export default function BottomMenu({
                   isUserInCampus={isUserInCampus}
                 />
               </div>
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', width: 70 }}>
+                <span style={{ fontSize: '0.8rem', marginBottom: 2, color: '#333', fontWeight: 500 }}>Pick Start Location</span>
                 <button
                   aria-label="Pick start location on map"
                   onClick={() => {
@@ -402,7 +403,7 @@ export default function BottomMenu({
                   onMouseEnter={() => setShowPickStartTooltip(true)}
                   onMouseLeave={() => setShowPickStartTooltip(false)}
                   style={{
-                    marginLeft: 8,
+                    marginLeft: 0,
                     background: pickMode === "start" ? '#4285F4' : '#eee',
                     border: 'none',
                     borderRadius: '4px',
@@ -450,7 +451,8 @@ export default function BottomMenu({
                   </div>
                 )}
               </div>
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', width: 50 }}>
+                <span style={{ fontSize: '0.8rem', marginBottom: 2, color: '#333', fontWeight: 500 }}>Auto Start</span>
                 <button
                   onClick={() => {
                     onAutoSelectLot()
@@ -460,7 +462,7 @@ export default function BottomMenu({
                   onMouseEnter={() => setShowAutoStartTooltip(true)}
                   onMouseLeave={() => setShowAutoStartTooltip(false)}
                   style={{
-                    marginLeft: 8,
+                    marginLeft: 0,
                     background: !isDestinationValid ? '#cccccc' : '#4CAF50',
                     border: 'none',
                     borderRadius: '4px',
@@ -513,7 +515,8 @@ export default function BottomMenu({
                   </div>
                 )}
               </div>
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', width: 70 }}>
+                <span style={{ fontSize: '0.8rem', marginBottom: 2, color: '#333', fontWeight: 500 }}>Google Maps</span>
                 <button
                   onClick={() => {
                     if (startLocation?.link) {
@@ -525,7 +528,7 @@ export default function BottomMenu({
                   onMouseEnter={() => setShowTooltip(true)}
                   onMouseLeave={() => setShowTooltip(false)}
                   style={{
-                    marginLeft: 8,
+                    marginLeft: 0,
                     backgroundColor: !startLocation?.link ? '#cccccc' : '#4285F4',
                     color: 'white',
                     border: 'none',
@@ -602,7 +605,8 @@ export default function BottomMenu({
                   onValidityChange={setIsDestinationValid}
                 />
               </div>
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', width: 90 }}>
+                <span style={{ fontSize: '0.8rem', marginBottom: 2, color: '#333', fontWeight: 500 }}>Pick Destination</span>
                 <button
                   aria-label="Pick destination on map"
                   onClick={() => {
@@ -615,7 +619,7 @@ export default function BottomMenu({
                   onMouseEnter={() => setShowPickDestinationTooltip(true)}
                   onMouseLeave={() => setShowPickDestinationTooltip(false)}
                   style={{
-                    marginLeft: 8,
+                    marginLeft: 0,
                     background: pickMode === "destination" ? '#4285F4' : '#eee',
                     border: 'none',
                     borderRadius: '4px',
@@ -685,7 +689,7 @@ export default function BottomMenu({
                     cursor: 'pointer',
                   }}
                 />
-                <span style={{ fontWeight: '500' }}>Step-free route</span>
+                <span style={{ fontWeight: '500' }}>Stair-free route</span>
               </label>
             </div>
           </div>
