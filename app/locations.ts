@@ -90,7 +90,7 @@ export const locations: Location[] = [
     coordinates: [
       [-122.1252547, 37.3634227],
       [-122.12508902318923, 37.363019783466996],
-      [-122.12564344309362, 37.363703043557905]
+      [-122.1251383, 37.3632791]
     ],
     highlightable: false,
     lot: "student",
@@ -156,7 +156,7 @@ export const locations: Location[] = [
   {
     name: "Lot 5",
     coordinates: [
-      [-122.1307338, 37.3605939]
+      [-122.1307338, 37.3605939],
     ],
     highlightable: false,
     lot: "student",

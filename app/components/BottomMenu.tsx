@@ -516,7 +516,7 @@ export default function BottomMenu({
                 )}
               </div>
               <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', width: 70 }}>
-                <span style={{ fontSize: '0.8rem', marginBottom: 2, color: '#333', fontWeight: 500 }}>Google Maps</span>
+                <span style={{ fontSize: '0.8rem', marginBottom: 2, color: '#333', fontWeight: 500 }}>Google Maps to Lot</span>
                 <button
                   onClick={() => {
                     if (startLocation?.link) {

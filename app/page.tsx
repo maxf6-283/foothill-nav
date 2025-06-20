@@ -530,6 +530,7 @@ export default function Map() {
     if (best_lot) {
       setSelectedStart(best_lot.name)
       setStartPosition(best_lot.coordinates)
+      setStartLocation(best_lot)
       
       addRoute(startPoint, endPoint, path)
     }
@@ -581,7 +582,7 @@ export default function Map() {
                 return distance;
               }
               else if (properties.elevator === "yes") {
-                return 45;
+                return isStepFree ? 30 : 75;
               }
               return 2 * distance;
             }
@@ -801,7 +802,7 @@ export default function Map() {
           return distance;
         }
         else if (properties.elevator === "yes") {
-          return isStepFree ? 1 : 45
+          return isStepFree ? 30 : 75
         }
         return 2 * distance;
       }
