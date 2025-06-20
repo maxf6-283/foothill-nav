@@ -27,25 +27,30 @@ export default function Map() {
   const [lngLat, setLngLat] = useState({ lng: 0, lat: 0 });
   const [isStepFree, setIsStepFree] = useState(false);
   const [destination, setDestination] = useState<[number, number] | [number, number][] | null>(null);
-  const [destinationRef, setDestinationRef] = useState<Location | null>(null);
-  const [startRef, setStartRef] = useState<Location | null>(null);
-  const [startLocation, setStartLocation] = useState<[number, number] | [number, number][] | null>(null);
+  const [destinationLocation, setDestinationLocation] = useState<Location | null>(null);
+  const [startLocation, setStartLocation] = useState<Location | null>(null);
+  const [startPosition, setStartPosition] = useState<[number, number] | [number, number][] | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [pathError, setPathError] = useState<string | null>(null);
-  const [isMenuExpanded, setIsMenuExpanded] = useState(false);
+  const [isMenuExpanded, setIsMenuExpanded] = useState(true);
   const currentPopupRef = useRef<maplibregl.Popup | null>(null);
   const [selectedDestination, setSelectedDestination] = useState('');
   const [selectedStart, setSelectedStart] = useState('Current Location');
   const [isUserInCampus, setIsUserInCampus] = useState<boolean | null>(null);
   const [pickMode, setPickMode] = useState<null | "destination" | "start">(null);
   const pickModeRef = useRef(pickMode)
+  const startPositionRef = useRef(startPosition)
+  const destinationRef = useRef(destination)
+  const userLocationRef = useRef(userLocation)
+  const isStepFreeRef = useRef(isStepFree)
 
   // Function to update URL parameters
-  const updateUrlParams = (start: string, dest: string) => {
+  const updateUrlParams = (start: string, dest: string, stepFree: boolean) => {
     const params = new URLSearchParams(window.location.search);
     if (start) params.set('start', start);
     if (dest) params.set('dest', dest);
+    if (stepFree) params.set('step_free', "true")
     window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
   };
 
@@ -54,23 +59,42 @@ export default function Map() {
     const params = new URLSearchParams(window.location.search);
     const startParam = params.get('start');
     const destParam = params.get('dest');
+    const stepFreeParam = params.get('step_free');
 
     if (startParam) {
       setSelectedStart(startParam);
       const startLocation = locations.find(loc => loc.name === startParam);
       if (startLocation) {
-        setStartLocation(startLocation.coordinates);
+        setStartLocation(startLocation)
+        setStartPosition(startLocation.coordinates)
+      }
+      const match = startParam.trim().match("^(?<lng>-?\\d+(\\.\\d*)?), ?(?<lat>-?\\d+(\\.\\d*)?)$")
+      console.log(match)
+      if (match && match.groups) {
+        setStartPosition([parseFloat(match.groups.lng), parseFloat(match.groups.lat)])
+        // startPositionRef.current = [parseFloat(match[1]), parseFloat(match[2])]
+        // console.log(startPositionRef.current)
       }
     }
-
+    
     if (destParam) {
       setSelectedDestination(destParam);
       const destLocation = locations.find(loc => loc.name === destParam);
       if (destLocation) {
-        setDestination(destLocation.coordinates);
-        setDestinationRef(destLocation);
-        setIsMenuExpanded(true);
+        setDestinationLocation(destLocation);
+        setDestination(destLocation.coordinates)
       }
+      const match = destParam.trim().match("^(?<lng>-?\\d+(\\.\\d*)?), ?(?<lat>-?\\d+(\\.\\d*)?)$")
+      if (match && match.groups) {
+        setDestination([parseFloat(match.groups.lng), parseFloat(match.groups.lat)])
+        // destinationRef.current = [parseFloat(match[1]), parseFloat(match[2])]
+        // console.log(destinationRef.current)
+      }
+    }
+
+    if (stepFreeParam) {
+      setIsStepFree(stepFreeParam == "true")
+      isStepFreeRef.current = true
     }
   };
 
@@ -81,14 +105,12 @@ export default function Map() {
 
   // Update URL when locations change
   useEffect(() => {
-    updateUrlParams(selectedStart, selectedDestination);
-  }, [selectedStart, selectedDestination]);
+    updateUrlParams(selectedStart, selectedDestination, isStepFree);
+  }, [selectedStart, selectedDestination, isStepFree]);
 
   // Function to update markers
   const updateMarkers = (start: [number, number] | null, end: [number, number] | null) => {
     if (!mapRef.current) return;
-
-    console.log("RAAA")
 
     // Remove existing markers if they exist
     if (mapRef.current.getLayer('start-marker')) {
@@ -176,6 +198,8 @@ export default function Map() {
       currentPopupRef.current = null;
     }
 
+    console.log("Path: ", path)
+
     // Add new route
     if (path) {
       setPathError(null);
@@ -188,10 +212,10 @@ export default function Map() {
         mapRef.current.removeSource('destination-highlight');
       }
 
-      if (destinationRef && destinationRef.highlightable != false) {
+      if (destinationLocation && destinationLocation.highlightable != false) {
         console.log("features:", dataRef.current?.features)
         const destinationBuilding = dataRef.current?.features.find(feature =>
-          feature.properties?.name == destinationRef.name
+          feature.properties?.name == destinationLocation.name
         );
 
         console.log("feature:", destinationBuilding)
@@ -279,14 +303,13 @@ export default function Map() {
     updateMarkers(startPoint, endPoint);
   }
 
-  const calculatePath = () => {
-    if (!mapRef.current || !pathfinderRef.current || !destination || (!startLocation && !userLocation)) {
-      setPathError("Please select a destination");
-      return;
+  const getBestPath = (dest: [number, number] | [number, number][], start: [number, number] | [number, number][] | null, userLoc: [number, number] | null): {path: Path<Feature<Geometry, GeoJsonProperties>> | undefined, startPoint: [number, number] | null, endPoint: [number, number] | null} => {
+    if (!pathfinderRef.current) {
+      console.log("no pathfinder!")
+      return {path: undefined, startPoint: null, endPoint: null}
     }
 
-    console.log("calculating path");
-
+    console.log("REE")
     // Get all line features from the data
     const lineFeatures = dataRef.current?.features.filter(
       feature => feature.geometry.type === 'LineString'
@@ -295,15 +318,15 @@ export default function Map() {
     let endList: [number, number][] = []
     let startList: [number, number][] = []
 
-    if (destination.length == 0) {
+    if (dest.length == 0) {
       //TODO: raise error of some kind
-    } else if (typeof destination[0] == 'number') {
-      endList = [destination as [number, number]]
+    } else if (typeof dest[0] == 'number') {
+      endList = [dest as [number, number]]
     } else {
-      endList = destination as [number, number][]
+      endList = dest as [number, number][]
     }
 
-    if (startLocation == null) {
+    if (start == null) {
       //snap user location
 
       let minDist = Infinity;
@@ -317,7 +340,7 @@ export default function Map() {
         const line = feature.geometry;
 
         for (const position of line.coordinates) {
-          const dist = turf.distance(position, userLocation as [number, number])
+          const dist = turf.distance(position, userLoc as [number, number])
           if (dist < minDist) {
             minDist = dist
             snappedUserLoc = position as [number, number]
@@ -325,20 +348,23 @@ export default function Map() {
         }
       }
 
-      console.log("snapped ", userLocation, " to ", snappedUserLoc)
+      console.log("snapped ", userLoc, " to ", snappedUserLoc)
 
       startList = [snappedUserLoc as [number, number]]
-    } else if (startLocation.length == 0) {
+    } else if (start.length == 0) {
       //TODO: raise error of some kind
-    } else if (typeof startLocation[0] == 'number') {
-      startList = [startLocation as [number, number]]
+    } else if (typeof start[0] == 'number') {
+      startList = [start as [number, number]]
     } else {
-      startList = startLocation as [number, number][]
+      startList = start as [number, number][]
     }
 
     let path: Path<Feature<Geometry, GeoJsonProperties>> | undefined;
     let startPoint: [number, number] | null = null;
     let endPoint: [number, number] | null = null;
+
+    console.log("startList: ", startList)
+    console.log("endList: ", endList)
 
     let bestLength = Infinity;
 
@@ -348,14 +374,38 @@ export default function Map() {
           turf.point(start),
           turf.point(end)
         );
-        if (new_path != undefined && (path == undefined || new_path.weight < bestLength)) {
+
+        console.log("new_path: ", new_path)
+        if (path == undefined || (new_path != undefined && new_path.weight < bestLength)) {
           path = new_path
-          bestLength = new_path.weight
+          console.log("ZIPITY")
+          bestLength = new_path?.weight ?? Infinity
+          console.log(start)
+          console.log(end)
           startPoint = start
           endPoint = end
         }
       }
     }
+
+    return {
+      path,
+      startPoint,
+      endPoint
+    }
+  }
+
+  const calculatePath = () => {
+    if (!mapRef.current || !pathfinderRef.current || !destinationRef.current || (!startPositionRef.current && !userLocationRef.current)) {
+      setPathError("Please select a destination");
+      console.log("destinationRef: ", destinationRef)
+      console.log("startPositionRef: ", startPositionRef)
+      return;
+    }
+
+    console.log("calculating path from ", startPositionRef.current, " to ", destinationRef.current);
+
+    const {path, startPoint, endPoint} = getBestPath(destinationRef.current, startPositionRef.current, userLocationRef.current)
 
     addRoute(startPoint, endPoint, path)
   };
@@ -464,7 +514,7 @@ export default function Map() {
 
     if (best_lot) {
       setSelectedStart(best_lot.name)
-      setStartLocation(best_lot.coordinates)
+      setStartPosition(best_lot.coordinates)
       
       addRoute(startPoint, endPoint, path)
     }
@@ -489,6 +539,9 @@ export default function Map() {
 
     mapRef.current = map;
 
+    const stepFree = isStepFreeRef.current
+    console.log("stepFree:",stepFree)
+
     map.on("load", () => {
       fetch("/foothill.json")
         .then((res) => res.json())
@@ -504,7 +557,7 @@ export default function Map() {
                 return undefined
               }
               else if (properties.highway === "steps" || properties.highway === "steep footway") {
-                return (isStepFree ? 1000 : 1.5) * distance;
+                return (stepFree ? 1000 : 1.5) * distance;
               }
               else if (properties.highway === "footway" || properties.highway === "path" || properties.foot === "yes") {
                 return distance;
@@ -519,6 +572,9 @@ export default function Map() {
 
           // Add all map layers
           addMapLayers(map, data);
+
+          if((startPositionRef.current || (userLocationRef.current && isUserInCampus)) && destinationRef.current)
+            calculatePath();
         });
     });
     // Add click handler
@@ -563,8 +619,6 @@ export default function Map() {
         locations.some(loc => loc.name == feature.properties?.name)
       );
 
-      console.log("b", clickedBuilding)
-
       if (clickedBuilding) {
         // Find matching location
         const matchingLocation = locations.find(loc => loc.name == clickedBuilding.properties.name);
@@ -572,11 +626,21 @@ export default function Map() {
           if (pickModeRef.current == "destination") {
             setDestination(matchingLocation.coordinates);
             setSelectedDestination(matchingLocation.name)
-            setDestinationRef(matchingLocation);
+            setDestinationLocation(matchingLocation);
+
+            if(startPositionRef.current || (userLocationRef.current && isUserInCampus)) {
+              const {path, startPoint, endPoint} = getBestPath(matchingLocation.coordinates, startPositionRef.current, userLocationRef.current)
+              addRoute(startPoint, endPoint, path)
+            }
           } else if (pickModeRef.current == "start") {
-            setStartLocation(matchingLocation.coordinates);
+            setStartPosition(matchingLocation.coordinates);
             setSelectedStart(matchingLocation.name)
-            setStartRef(matchingLocation);
+            setStartLocation(matchingLocation);
+
+            if(destinationRef.current) {
+              const {path, startPoint, endPoint} = getBestPath(destinationRef.current, matchingLocation.coordinates, null)
+              addRoute(startPoint, endPoint, path)
+            }
           }
           setPickMode(null)
           setIsMenuExpanded(true);
@@ -608,12 +672,22 @@ export default function Map() {
         if (snappedLoc) {
           if (pickModeRef.current == "destination") {
             setDestination(snappedLoc)
-            setDestinationRef(null)
+            setDestinationLocation(null)
             setSelectedDestination(snappedLoc[0].toString()+ ", "+snappedLoc[1].toString())
+
+            if(startPositionRef.current || (userLocationRef.current && isUserInCampus)) {
+              const {path, startPoint, endPoint} = getBestPath(snappedLoc, startPositionRef.current, userLocationRef.current)
+              addRoute(startPoint, endPoint, path)
+            }
           } else if (pickModeRef.current == "start") {
-            setStartLocation(snappedLoc)
-            setStartRef(null)
+            setStartPosition(snappedLoc)
+            setStartLocation(null)
             setSelectedStart(snappedLoc[0].toString()+ ", "+snappedLoc[1].toString())
+
+            if(destinationRef.current) {
+              const {path, startPoint, endPoint} = getBestPath(destinationRef.current, snappedLoc, null)
+              addRoute(startPoint, endPoint, path)
+            }
           }
           setPickMode(null)
         }
@@ -752,6 +826,11 @@ export default function Map() {
         return 2 * distance;
       }
     });
+  
+    isStepFreeRef.current = isStepFree
+
+    if((startPositionRef.current || (userLocationRef.current && isUserInCampus)) && destinationRef.current)
+      calculatePath();
   }, [isStepFree]);
 
   useEffect(() => {
@@ -769,6 +848,17 @@ export default function Map() {
     }
 
   }, [pickMode])
+
+  useEffect(() => {
+    destinationRef.current = destination
+  }, [destination])
+
+  useEffect(() => {
+    startPositionRef.current = startPosition
+  }, [startPosition])
+  useEffect(() => {
+    userLocationRef.current = userLocation
+  }, [userLocation])
 
   return (
     <div>
@@ -839,14 +929,11 @@ export default function Map() {
         isStepFree={isStepFree}
         onStepFreeChange={setIsStepFree}
         onDestinationChange={setDestination}
-        onDestinationRefChange={setDestinationRef}
-        onStartRefChange={setStartRef}
-        startRef={startRef}
+        onDestinationLocationChange={setDestinationLocation}
         onStartLocationChange={setStartLocation}
-        onGoClick={() => {
-          calculatePath();
-          console.log("calculated path");
-        }}
+        startLocation={startLocation}
+        onStartPositionChange={setStartPosition}
+        onGoClick={calculatePath}
         isMenuExpanded={isMenuExpanded}
         onIsMenuExpandedChange={setIsMenuExpanded}
         selectedDestination={selectedDestination}

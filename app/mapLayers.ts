@@ -251,8 +251,8 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
         ["linear"],
         ["zoom"],
         14, 6,
-        17, 10,
-        18, 14
+        17, 9,
+        20, 14
       ],
       "text-allow-overlap": false,
       "text-ignore-placement": false,
@@ -283,8 +283,8 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
         ["linear"],
         ["zoom"],
         14, 6,
-        17, 10,
-        18, 14
+        17, 9,
+        20, 14
       ],
       "text-allow-overlap": false,
       "text-ignore-placement": false,
@@ -315,8 +315,8 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
         ["linear"],
         ["zoom"],
         14, 6,
-        17, 10,
-        18, 14
+        17, 9,
+        20, 14
       ],
       "text-allow-overlap": false,
       "text-ignore-placement": false,
@@ -347,8 +347,8 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
         ["linear"],
         ["zoom"],
         14, 6,
-        17, 10,
-        18, 14
+        17, 9,
+        20, 14
       ],
       "text-allow-overlap": false,
       "text-ignore-placement": false,

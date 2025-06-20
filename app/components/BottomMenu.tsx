@@ -251,10 +251,10 @@ interface BottomMenuProps {
   isStepFree: boolean;
   onStepFreeChange: (value: boolean) => void;
   onDestinationChange: (coordinates: [number, number] | [number, number][] | null) => void;
-  onDestinationRefChange: (name: Location | null) => void;
-  onStartRefChange: (name: Location | null) => void;
-  startRef: Location | null;
-  onStartLocationChange: (coordinates: [number, number] | [number, number][] | null) => void;
+  onDestinationLocationChange: (name: Location | null) => void;
+  onStartLocationChange: (name: Location | null) => void;
+  startLocation: Location | null;
+  onStartPositionChange: (coordinates: [number, number] | [number, number][] | null) => void;
   onGoClick: () => void;
   isMenuExpanded: boolean;
   onIsMenuExpandedChange: (isMenuExpanded: boolean) => void;
@@ -273,10 +273,10 @@ export default function BottomMenu({
   isStepFree, 
   onStepFreeChange, 
   onDestinationChange,
-  onDestinationRefChange,
-  onStartRefChange,
-  startRef,
+  onDestinationLocationChange,
   onStartLocationChange,
+  startLocation,
+  onStartPositionChange,
   onGoClick,
   isMenuExpanded,
   onIsMenuExpandedChange,
@@ -293,19 +293,22 @@ export default function BottomMenu({
   const [isStartValid, setIsStartValid] = useState(true);
   const [isDestinationValid, setIsDestinationValid] = useState(true);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [showAutoStartTooltip, setShowAutoStartTooltip] = useState(false);
+  const [showPickStartTooltip, setShowPickStartTooltip] = useState(false);
+  const [showPickDestinationTooltip, setShowPickDestinationTooltip] = useState(false);
 
   const handleDestinationChange = (value: string) => {
     onSelectedDestinationChange(value);
     const location = locations.find(loc => loc.name === value);
     onDestinationChange(location ? location.coordinates : null);
-    onDestinationRefChange(location ? location : null);
+    onDestinationLocationChange(location ? location : null);
   };
   
   const handleStartLocationChange = (value: string) => {
     onSelectedStartChange(value);
     const location = locations.find(loc => loc.name === value);
-    onStartLocationChange(location ? location.coordinates : null);
-    onStartRefChange(location ? location : null);
+    onStartPositionChange(location ? location.coordinates : null);
+    onStartLocationChange(location ? location : null);
   };
 
   const isCurrentLocationValid = selectedStart === "Current Location" ? isUserInCampus === true : true;
@@ -390,161 +393,164 @@ export default function BottomMenu({
                   isUserInCampus={isUserInCampus}
                 />
               </div>
-              <button
-                aria-label="Pick start location on map"
-                onClick={() => {
-                  if(pickMode == "start") {
-                    setPickMode(null)
-                  } else {
-                    setPickMode("start")
-                  }
-                }}
-                style={{
-                  marginLeft: 8,
-                  background: pickMode === "start" ? '#4285F4' : '#eee',
-                  border: 'none',
-                  borderRadius: '4px',
-                  width: 36,
-                  height: 36,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  color: pickMode === "start" ? 'white' : '#333',
-                  outline: pickMode === "start" ? '2px solid #4285F4' : 'none',
-                  boxShadow: pickMode === "start" ? '0 0 0 2px #90caf9' : 'none',
-                  transition: 'background 0.2s, color 0.2s, outline 0.2s',
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="2" x2="12" y2="6" />
-                  <line x1="12" y1="18" x2="12" y2="22" />
-                  <line x1="2" y1="12" x2="6" y2="12" />
-                  <line x1="18" y1="12" x2="22" y2="12" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', gap: '10px' }}>
-              <div style={{ flex: 1 }}>
-                <LocationDropdown
-                  label="Select Destination"
-                  placeholder="Search destinations..."
-                  value={selectedDestination}
-                  onChange={handleDestinationChange}
-                  onValidityChange={setIsDestinationValid}
-                />
+              <div style={{ position: 'relative' }}>
+                <button
+                  aria-label="Pick start location on map"
+                  onClick={() => {
+                    if(pickMode == "start") {
+                      setPickMode(null)
+                    } else {
+                      setPickMode("start")
+                    }
+                  }}
+                  onMouseEnter={() => setShowPickStartTooltip(true)}
+                  onMouseLeave={() => setShowPickStartTooltip(false)}
+                  style={{
+                    marginLeft: 8,
+                    background: pickMode === "start" ? '#4285F4' : '#eee',
+                    border: 'none',
+                    borderRadius: '4px',
+                    width: 36,
+                    height: 36,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: pickMode === "start" ? 'white' : '#333',
+                    outline: pickMode === "start" ? '2px solid #4285F4' : 'none',
+                    boxShadow: pickMode === "start" ? '0 0 0 2px #90caf9' : 'none',
+                    transition: 'background 0.2s, color 0.2s, outline 0.2s',
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="2" x2="12" y2="6" />
+                    <line x1="12" y1="18" x2="12" y2="22" />
+                    <line x1="2" y1="12" x2="6" y2="12" />
+                    <line x1="18" y1="12" x2="22" y2="12" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </button>
+                {showPickStartTooltip && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '-30px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                      color: 'white',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      fontSize: '0.75rem',
+                      whiteSpace: 'nowrap',
+                      pointerEvents: 'none',
+                      zIndex: 1000,
+                    }}
+                  >
+                    Pick start
+                    <br />
+                    location on map
+                  </div>
+                )}
               </div>
-              <button
-                aria-label="Pick destination on map"
-                onClick={() => {
-                  if(pickMode == "destination") {
-                    setPickMode(null)
-                  } else {
-                    setPickMode("destination")
-                  }
-                }}
-                style={{
-                  marginLeft: 8,
-                  background: pickMode === "destination" ? '#4285F4' : '#eee',
-                  border: 'none',
-                  borderRadius: '4px',
-                  width: 36,
-                  height: 36,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  color: pickMode === "destination" ? 'white' : '#333',
-                  outline: pickMode === "destination" ? '2px solid #4285F4' : 'none',
-                  boxShadow: pickMode === "destination" ? '0 0 0 2px #90caf9' : 'none',
-                  transition: 'background 0.2s, color 0.2s, outline 0.2s',
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="2" x2="12" y2="6" />
-                  <line x1="12" y1="18" x2="12" y2="22" />
-                  <line x1="2" y1="12" x2="6" y2="12" />
-                  <line x1="18" y1="12" x2="22" y2="12" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              </button>
-            </div>
-
-            <div style={{ 
-              display: 'flex', 
-              gap: '10px', 
-              marginBottom: '20px',
-              alignItems: 'center'
-            }}>
-              <button
-                onClick={() => {
-                  onAutoSelectLot()
-                }}
-                disabled={!isDestinationValid}
-                style={{
-                  flex: 1,
-                  padding: '10px',
-                  backgroundColor: !isDestinationValid ? '#cccccc' : '#4CAF50',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  fontSize: '0.9rem',
-                  fontWeight: '500',
-                  cursor: !isDestinationValid ? 'not-allowed' : 'pointer',
-                  transition: 'background-color 0.2s ease-in-out',
-                }}
-                onMouseOver={(e) => {
-                  if (selectedDestination) {
-                    e.currentTarget.style.backgroundColor = '#45a049';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (selectedDestination) {
-                    e.currentTarget.style.backgroundColor = '#4CAF50';
-                  }
-                }}
-              >
-                Auto-start from closest lot
-              </button>
-
               <div style={{ position: 'relative' }}>
                 <button
                   onClick={() => {
-                    if (startRef?.link) {
-                      window.open(startRef.link, '_blank');
+                    onAutoSelectLot()
+                  }}
+                  disabled={!isDestinationValid}
+                  aria-label="Auto-start from closest lot"
+                  onMouseEnter={() => setShowAutoStartTooltip(true)}
+                  onMouseLeave={() => setShowAutoStartTooltip(false)}
+                  style={{
+                    marginLeft: 8,
+                    background: !isDestinationValid ? '#cccccc' : '#4CAF50',
+                    border: 'none',
+                    borderRadius: '4px',
+                    width: 36,
+                    height: 36,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: !isDestinationValid ? 'not-allowed' : 'pointer',
+                    color: 'white',
+                    transition: 'background-color 0.2s ease-in-out',
+                  }}
+                  onMouseOver={(e) => {
+                    if (isDestinationValid) {
+                      e.currentTarget.style.backgroundColor = '#45a049';
                     }
                   }}
-                  disabled={!startRef?.link}
+                  onMouseOut={(e) => {
+                    if (isDestinationValid) {
+                      e.currentTarget.style.backgroundColor = '#4CAF50';
+                    }
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M2 17l10 5 10-5" />
+                    <path d="M2 12l10 5 10-5" />
+                  </svg>
+                </button>
+                {showAutoStartTooltip && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '-30px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                      color: 'white',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      fontSize: '0.75rem',
+                      whiteSpace: 'nowrap',
+                      pointerEvents: 'none',
+                      zIndex: 1000,
+                    }}
+                  >
+                    Auto-start from
+                    <br />
+                    closest lot
+                  </div>
+                )}
+              </div>
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => {
+                    if (startLocation?.link) {
+                      window.open(startLocation.link, '_blank');
+                    }
+                  }}
+                  disabled={!startLocation?.link}
                   aria-label="Open starting location in google maps"
                   onMouseEnter={() => setShowTooltip(true)}
                   onMouseLeave={() => setShowTooltip(false)}
                   style={{
-                    padding: '10px',
-                    backgroundColor: !startRef?.link ? '#cccccc' : '#4285F4',
+                    marginLeft: 8,
+                    backgroundColor: !startLocation?.link ? '#cccccc' : '#4285F4',
                     color: 'white',
                     border: 'none',
                     borderRadius: '4px',
                     fontSize: '0.9rem',
                     fontWeight: '500',
-                    cursor: !startRef?.link ? 'not-allowed' : 'pointer',
+                    cursor: !startLocation?.link ? 'not-allowed' : 'pointer',
                     transition: 'background-color 0.2s ease-in-out',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: '40px',
-                    height: '40px',
+                    width: 36,
+                    height: 36,
                   }}
                   onMouseOver={(e) => {
-                    if (startRef?.link) {
+                    if (startLocation?.link) {
                       e.currentTarget.style.backgroundColor = '#3367d6';
                     }
                   }}
                   onMouseOut={(e) => {
-                    if (startRef?.link) {
+                    if (startLocation?.link) {
                       e.currentTarget.style.backgroundColor = '#4285F4';
                     }
                   }}
@@ -585,6 +591,79 @@ export default function BottomMenu({
                     location in
                     <br />
                     google maps
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', gap: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <LocationDropdown
+                  label="Select Destination"
+                  placeholder="Search destinations..."
+                  value={selectedDestination}
+                  onChange={handleDestinationChange}
+                  onValidityChange={setIsDestinationValid}
+                />
+              </div>
+              <div style={{ position: 'relative' }}>
+                <button
+                  aria-label="Pick destination on map"
+                  onClick={() => {
+                    if(pickMode == "destination") {
+                      setPickMode(null)
+                    } else {
+                      setPickMode("destination")
+                    }
+                  }}
+                  onMouseEnter={() => setShowPickDestinationTooltip(true)}
+                  onMouseLeave={() => setShowPickDestinationTooltip(false)}
+                  style={{
+                    marginLeft: 8,
+                    background: pickMode === "destination" ? '#4285F4' : '#eee',
+                    border: 'none',
+                    borderRadius: '4px',
+                    width: 36,
+                    height: 36,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: pickMode === "destination" ? 'white' : '#333',
+                    outline: pickMode === "destination" ? '2px solid #4285F4' : 'none',
+                    boxShadow: pickMode === "destination" ? '0 0 0 2px #90caf9' : 'none',
+                    transition: 'background 0.2s, color 0.2s, outline 0.2s',
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="2" x2="12" y2="6" />
+                    <line x1="12" y1="18" x2="12" y2="22" />
+                    <line x1="2" y1="12" x2="6" y2="12" />
+                    <line x1="18" y1="12" x2="22" y2="12" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </button>
+                {showPickDestinationTooltip && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '-30px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                      color: 'white',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      fontSize: '0.75rem',
+                      whiteSpace: 'nowrap',
+                      pointerEvents: 'none',
+                      zIndex: 1000,
+                    }}
+                  >
+                    Pick destination
+                    <br />
+                    on map
                   </div>
                 )}
               </div>
