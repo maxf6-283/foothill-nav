@@ -255,7 +255,6 @@ interface BottomMenuProps {
   onStartLocationChange: (name: Location | null) => void;
   startLocation: Location | null;
   onStartPositionChange: (coordinates: [number, number] | [number, number][] | null) => void;
-  onGoClick: () => void;
   isMenuExpanded: boolean;
   onIsMenuExpandedChange: (isMenuExpanded: boolean) => void;
   selectedDestination: string;
@@ -277,7 +276,6 @@ export default function BottomMenu({
   onStartLocationChange,
   startLocation,
   onStartPositionChange,
-  onGoClick,
   isMenuExpanded,
   onIsMenuExpandedChange,
   selectedDestination,
@@ -290,7 +288,6 @@ export default function BottomMenu({
   setPickMode,
   destinationLocationRef
 }: BottomMenuProps) {
-  const [isStartValid, setIsStartValid] = useState(true);
   const [isDestinationValid, setIsDestinationValid] = useState(true);
   const [showTooltip, setShowTooltip] = useState(false);
   const [showAutoStartTooltip, setShowAutoStartTooltip] = useState(false);
@@ -311,8 +308,6 @@ export default function BottomMenu({
     onStartPositionChange(location ? location.coordinates : null);
     onStartLocationChange(location ? location : null);
   };
-
-  const isCurrentLocationValid = selectedStart === "Current Location" ? isUserInCampus === true : true;
 
   return (
     <div
@@ -386,7 +381,7 @@ export default function BottomMenu({
                   value={selectedStart}
                   onChange={handleStartLocationChange}
                   includeCurrentLocation={true}
-                  onValidityChange={setIsStartValid}
+                  onValidityChange={() => {}}
                   customStyles={selectedStart === "Current Location" && (isUserInCampus === false || isUserInCampus === null) ? {
                     color: '#999',
                     fontStyle: 'italic'

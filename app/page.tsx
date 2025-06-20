@@ -218,7 +218,7 @@ export default function Map() {
             }
             const number = parseInt(destinationLocationRef.current?.name ?? "")
             if (number) {
-              let match = feature.properties.name.toString().match("(\\d\\d\\d\\d)-(\\d\\d\\d\\d)")
+              const match = feature.properties.name.toString().match("(\\d\\d\\d\\d)-(\\d\\d\\d\\d)")
               if(match) {
                 return match[1] <= number && number <= match[2]
               }
@@ -953,7 +953,6 @@ export default function Map() {
         onStartLocationChange={setStartLocation}
         startLocation={startLocation}
         onStartPositionChange={setStartPosition}
-        onGoClick={calculatePath}
         isMenuExpanded={isMenuExpanded}
         onIsMenuExpandedChange={setIsMenuExpanded}
         selectedDestination={selectedDestination}
