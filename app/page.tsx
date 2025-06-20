@@ -277,7 +277,7 @@ export default function Map() {
       });
 
       // Calculate and display time
-      const seconds = Math.round(path.weight / 1.3);
+      const seconds = Math.round(path.weight / (isStepFreeRef.current ? 0.9 : 1.3));
       const minutes = Math.round(seconds / 60);
       const timeString = minutes > 0
         ? `${minutes} minute${minutes > 1 ? 's' : ''}`
@@ -830,7 +830,7 @@ export default function Map() {
           return distance;
         }
         else if (properties.elevator === "yes") {
-          return 45
+          return isStepFree ? 1 : 45
         }
         return 2 * distance;
       }
