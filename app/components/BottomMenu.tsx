@@ -161,6 +161,12 @@ function LocationDropdown({
               setSearchQuery(value);
             }}
           />
+          <style jsx>{`
+            input::placeholder {
+              color: #9ca3af;
+              font-style: italic;
+            }
+          `}</style>
           <svg
             width="12"
             height="12"
@@ -265,7 +271,8 @@ interface BottomMenuProps {
   onAutoSelectLot: () => void;
   pickMode: null | "destination" | "start";
   setPickMode: (mode: null | "destination" | "start") => void;
-  destinationLocationRef: RefObject<Location | null>
+  destinationLocationRef: RefObject<Location | null>;
+  onClearRoute?: () => void;
 }
 
 export default function BottomMenu({ 
@@ -286,9 +293,10 @@ export default function BottomMenu({
   onAutoSelectLot,
   pickMode,
   setPickMode,
-  destinationLocationRef
+  destinationLocationRef,
+  onClearRoute
 }: BottomMenuProps) {
-  const [isDestinationValid, setIsDestinationValid] = useState(true);
+  const [isDestinationValid, setIsDestinationValid] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [showAutoStartTooltip, setShowAutoStartTooltip] = useState(false);
   const [showPickStartTooltip, setShowPickStartTooltip] = useState(false);
@@ -316,11 +324,12 @@ export default function BottomMenu({
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: 'white',
-        boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.1)',
-        transition: 'height 0.3s ease-in-out',
+        backgroundColor: '#ffffff',
+        boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.15)',
+        transition: 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         height: isMenuExpanded ? '50vh' : '60px',
         zIndex: 1000,
+        borderTop: '1px solid #e5e7eb',
       }}
     >
       {/* Arrow button */}
@@ -328,26 +337,45 @@ export default function BottomMenu({
         onClick={() => onIsMenuExpandedChange(!isMenuExpanded)}
         style={{
           position: 'absolute',
-          left: '20px',
-          top: '10px',
-          background: 'none',
-          border: 'none',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          top: '12px',
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: '20px',
           cursor: 'pointer',
-          padding: '5px',
-          transform: isMenuExpanded ? 'rotate(0deg)' : 'rotate(180deg)',
-          transition: 'transform 0.3s ease-in-out',
-          color: '#333',
+          padding: '8px',
+          width: '40px',
+          height: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.2s ease-in-out',
+          color: '#64748b',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        }}
+        onMouseOver={(e) => {
+          e.currentTarget.style.backgroundColor = '#f1f5f9';
+          e.currentTarget.style.borderColor = '#cbd5e1';
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.backgroundColor = '#f8fafc';
+          e.currentTarget.style.borderColor = '#e2e8f0';
         }}
       >
         <svg
-          width="24"
-          height="24"
+          width="16"
+          height="16"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
+          style={{
+            transform: isMenuExpanded ? 'rotate(0deg)' : 'rotate(180deg)',
+            transition: 'transform 0.3s ease-in-out',
+          }}
         >
           <path d="M6 9l6 6 6-6" />
         </svg>
@@ -356,341 +384,521 @@ export default function BottomMenu({
       {/* Menu content */}
       <div
         style={{
-          padding: '40px 20px 20px 20px',
+          padding: '48px 24px 24px 24px',
           height: '100%',
           overflowY: 'auto',
+          backgroundColor: '#ffffff',
         }}
       >
         {isMenuExpanded && (
           <div>
             <h2 style={{ 
-              marginBottom: '20px',
-              marginTop: '20px',
-              color: '#333',
-              fontSize: '1.5rem',
-              fontWeight: '600'
+              marginBottom: '32px',
+              marginTop: '0',
+              color: '#1e293b',
+              fontSize: '1.75rem',
+              fontWeight: '700',
+              letterSpacing: '-0.025em',
+              borderBottom: '2px solid #f1f5f9',
+              paddingBottom: '16px',
             }}>
               Navigation Menu
             </h2>
             
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', gap: '10px' }}>
-              <div style={{ flex: 1 }}>
-                <LocationDropdown
-                  label="Select Starting Location"
-                  placeholder="Search starting locations..."
-                  value={selectedStart}
-                  onChange={handleStartLocationChange}
-                  includeCurrentLocation={true}
-                  onValidityChange={() => {}}
-                  customStyles={selectedStart === "Current Location" && (isUserInCampus === false || isUserInCampus === null) ? {
-                    color: '#999',
-                    fontStyle: 'italic'
-                  } : undefined}
-                  isUserInCampus={isUserInCampus}
-                />
-              </div>
-              <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', width: 70 }}>
-                <span style={{ fontSize: '0.8rem', marginBottom: 2, color: '#333', fontWeight: 500 }}>Pick Start Location</span>
-                <button
-                  aria-label="Pick start location on map"
-                  onClick={() => {
-                    if(pickMode == "start") {
-                      setPickMode(null)
-                    } else {
-                      setPickMode("start")
-                    }
-                  }}
-                  onMouseEnter={() => setShowPickStartTooltip(true)}
-                  onMouseLeave={() => setShowPickStartTooltip(false)}
-                  style={{
-                    marginLeft: 0,
-                    background: pickMode === "start" ? '#4285F4' : '#eee',
-                    border: 'none',
-                    borderRadius: '4px',
-                    width: 36,
-                    height: 36,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: pickMode === "start" ? 'white' : '#333',
-                    outline: pickMode === "start" ? '2px solid #4285F4' : 'none',
-                    boxShadow: pickMode === "start" ? '0 0 0 2px #90caf9' : 'none',
-                    transition: 'background 0.2s, color 0.2s, outline 0.2s',
-                  }}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="2" x2="12" y2="6" />
-                    <line x1="12" y1="18" x2="12" y2="22" />
-                    <line x1="2" y1="12" x2="6" y2="12" />
-                    <line x1="18" y1="12" x2="22" y2="12" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                </button>
-                {showPickStartTooltip && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: '-30px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                      color: 'white',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      fontSize: '0.75rem',
-                      whiteSpace: 'nowrap',
-                      pointerEvents: 'none',
-                      zIndex: 1000,
-                    }}
-                  >
-                    Pick start
-                    <br />
-                    location on map
+            {/* Starting Location Section */}
+            <div style={{ marginBottom: '32px' }}>
+              <h3 style={{
+                fontSize: '1.125rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '16px',
+                marginTop: '0',
+              }}>
+                Starting Location
+              </h3>
+              
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
+                <div style={{ flex: '1', minWidth: '280px' }}>
+                  <LocationDropdown
+                    label="Select Starting Location From List"
+                    placeholder="Search starting locations..."
+                    value={selectedStart}
+                    onChange={handleStartLocationChange}
+                    includeCurrentLocation={true}
+                    onValidityChange={() => {}}
+                    customStyles={selectedStart === "Current Location" && (isUserInCampus === false || isUserInCampus === null) ? {
+                      color: '#999',
+                      fontStyle: 'italic'
+                    } : undefined}
+                    isUserInCampus={isUserInCampus}
+                  />
+                </div>
+                
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  {/* Pick Start Button */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '80px' }}>
+                    <span style={{ 
+                      fontSize: '0.75rem', 
+                      marginBottom: '8px', 
+                      color: '#6b7280', 
+                      fontWeight: '500',
+                      textAlign: 'center',
+                      lineHeight: '1.2'
+                    }}>
+                      Pick Start On Map
+                    </span>
+                    <button
+                      aria-label="Pick start location on map"
+                      onClick={() => {
+                        if(pickMode == "start") {
+                          setPickMode(null)
+                        } else {
+                          setPickMode("start")
+                        }
+                      }}
+                      onMouseEnter={() => setShowPickStartTooltip(true)}
+                      onMouseLeave={() => setShowPickStartTooltip(false)}
+                      style={{
+                        background: pickMode === "start" ? '#3b82f6' : '#f8fafc',
+                        border: pickMode === "start" ? '2px solid #3b82f6' : '2px solid #e2e8f0',
+                        borderRadius: '8px',
+                        width: '48px',
+                        height: '48px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        color: pickMode === "start" ? 'white' : '#64748b',
+                        transition: 'all 0.2s ease-in-out',
+                        boxShadow: pickMode === "start" ? '0 4px 12px rgba(59, 130, 246, 0.3)' : '0 1px 3px rgba(0, 0, 0, 0.1)',
+                      }}
+                      onMouseOver={(e) => {
+                        if (pickMode !== "start") {
+                          e.currentTarget.style.backgroundColor = '#f1f5f9';
+                          e.currentTarget.style.borderColor = '#cbd5e1';
+                        }
+                      }}
+                      onMouseOut={(e) => {
+                        if (pickMode !== "start") {
+                          e.currentTarget.style.backgroundColor = '#f8fafc';
+                          e.currentTarget.style.borderColor = '#e2e8f0';
+                        }
+                      }}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="2" x2="12" y2="6" />
+                        <line x1="12" y1="18" x2="12" y2="22" />
+                        <line x1="2" y1="12" x2="6" y2="12" />
+                        <line x1="18" y1="12" x2="22" y2="12" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    </button>
+                    {showPickStartTooltip && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: '-40px',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          backgroundColor: '#1f2937',
+                          color: 'white',
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          fontSize: '0.75rem',
+                          whiteSpace: 'nowrap',
+                          pointerEvents: 'none',
+                          zIndex: 1000,
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                        }}
+                      >
+                        Pick start location on map
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', width: 50 }}>
-                <span style={{ fontSize: '0.8rem', marginBottom: 2, color: '#333', fontWeight: 500 }}>Auto Start</span>
-                <button
-                  onClick={() => {
-                    onAutoSelectLot()
-                  }}
-                  disabled={!isDestinationValid}
-                  aria-label="Auto-start from closest lot"
-                  onMouseEnter={() => setShowAutoStartTooltip(true)}
-                  onMouseLeave={() => setShowAutoStartTooltip(false)}
-                  style={{
-                    marginLeft: 0,
-                    background: !isDestinationValid ? '#cccccc' : '#4CAF50',
-                    border: 'none',
-                    borderRadius: '4px',
-                    width: 36,
-                    height: 36,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: !isDestinationValid ? 'not-allowed' : 'pointer',
-                    color: 'white',
-                    transition: 'background-color 0.2s ease-in-out',
-                  }}
-                  onMouseOver={(e) => {
-                    if (isDestinationValid) {
-                      e.currentTarget.style.backgroundColor = '#45a049';
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (isDestinationValid) {
-                      e.currentTarget.style.backgroundColor = '#4CAF50';
-                    }
-                  }}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                    <path d="M2 17l10 5 10-5" />
-                    <path d="M2 12l10 5 10-5" />
-                  </svg>
-                </button>
-                {showAutoStartTooltip && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: '-30px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                      color: 'white',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      fontSize: '0.75rem',
-                      whiteSpace: 'nowrap',
-                      pointerEvents: 'none',
-                      zIndex: 1000,
-                    }}
-                  >
-                    Auto-start from
-                    <br />
-                    closest lot
+
+                  {/* Auto Start Button */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '100px' }}>
+                    <span style={{ 
+                      fontSize: '0.75rem', 
+                      marginBottom: '8px', 
+                      color: '#6b7280', 
+                      fontWeight: '500',
+                      textAlign: 'center',
+                      lineHeight: '1.2'
+                    }}>
+                      Start From Closest Lot
+                    </span>
+                    <button
+                      onClick={() => {
+                        onAutoSelectLot()
+                      }}
+                      disabled={!isDestinationValid}
+                      aria-label="Auto-start from closest lot"
+                      onMouseEnter={() => setShowAutoStartTooltip(true)}
+                      onMouseLeave={() => setShowAutoStartTooltip(false)}
+                      style={{
+                        background: !isDestinationValid ? '#f3f4f6' : '#10b981',
+                        border: '2px solid',
+                        borderColor: !isDestinationValid ? '#d1d5db' : '#10b981',
+                        borderRadius: '8px',
+                        width: '48px',
+                        height: '48px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: !isDestinationValid ? 'not-allowed' : 'pointer',
+                        color: 'white',
+                        transition: 'all 0.2s ease-in-out',
+                        boxShadow: !isDestinationValid ? '0 1px 3px rgba(0, 0, 0, 0.1)' : '0 4px 12px rgba(16, 185, 129, 0.3)',
+                      }}
+                      onMouseOver={(e) => {
+                        if (isDestinationValid) {
+                          e.currentTarget.style.backgroundColor = '#059669';
+                          e.currentTarget.style.borderColor = '#059669';
+                        }
+                      }}
+                      onMouseOut={(e) => {
+                        if (isDestinationValid) {
+                          e.currentTarget.style.backgroundColor = '#10b981';
+                          e.currentTarget.style.borderColor = '#10b981';
+                        }
+                      }}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                        <path d="M2 17l10 5 10-5" />
+                        <path d="M2 12l10 5 10-5" />
+                      </svg>
+                    </button>
+                    {showAutoStartTooltip && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: '-40px',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          backgroundColor: '#1f2937',
+                          color: 'white',
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          fontSize: '0.75rem',
+                          whiteSpace: 'nowrap',
+                          pointerEvents: 'none',
+                          zIndex: 1000,
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                        }}
+                      >
+                        Auto-start from closest lot
+                      </div>
+                    )}
                   </div>
-                )}
+
+                  {/* Google Maps Button */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '80px' }}>
+                    <span style={{ 
+                      fontSize: '0.75rem', 
+                      marginBottom: '8px', 
+                      color: '#6b7280', 
+                      fontWeight: '500',
+                      textAlign: 'center',
+                      lineHeight: '1.2'
+                    }}>
+                      Google Maps to Lot
+                    </span>
+                    <button
+                      onClick={() => {
+                        if (startLocation?.link) {
+                          window.open(startLocation.link, '_blank');
+                        }
+                      }}
+                      disabled={!startLocation?.link}
+                      aria-label="Open starting location in google maps"
+                      onMouseEnter={() => setShowTooltip(true)}
+                      onMouseLeave={() => setShowTooltip(false)}
+                      style={{
+                        backgroundColor: !startLocation?.link ? '#f3f4f6' : '#4285f4',
+                        border: '2px solid',
+                        borderColor: !startLocation?.link ? '#d1d5db' : '#4285f4',
+                        color: 'white',
+                        borderRadius: '8px',
+                        fontSize: '0.9rem',
+                        fontWeight: '500',
+                        cursor: !startLocation?.link ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s ease-in-out',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '48px',
+                        height: '48px',
+                        boxShadow: !startLocation?.link ? '0 1px 3px rgba(0, 0, 0, 0.1)' : '0 4px 12px rgba(66, 133, 244, 0.3)',
+                      }}
+                      onMouseOver={(e) => {
+                        if (startLocation?.link) {
+                          e.currentTarget.style.backgroundColor = '#3367d6';
+                          e.currentTarget.style.borderColor = '#3367d6';
+                        }
+                      }}
+                      onMouseOut={(e) => {
+                        if (startLocation?.link) {
+                          e.currentTarget.style.backgroundColor = '#4285f4';
+                          e.currentTarget.style.borderColor = '#4285f4';
+                        }
+                      }}
+                    >
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                    </button>
+                    {showTooltip && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: '-40px',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          backgroundColor: '#1f2937',
+                          color: 'white',
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          fontSize: '0.75rem',
+                          whiteSpace: 'nowrap',
+                          pointerEvents: 'none',
+                          zIndex: 1000,
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                        }}
+                      >
+                        Open starting location in Google Maps
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', width: 70 }}>
-                <span style={{ fontSize: '0.8rem', marginBottom: 2, color: '#333', fontWeight: 500 }}>Google Maps to Lot</span>
-                <button
-                  onClick={() => {
-                    if (startLocation?.link) {
-                      window.open(startLocation.link, '_blank');
-                    }
-                  }}
-                  disabled={!startLocation?.link}
-                  aria-label="Open starting location in google maps"
-                  onMouseEnter={() => setShowTooltip(true)}
-                  onMouseLeave={() => setShowTooltip(false)}
-                  style={{
-                    marginLeft: 0,
-                    backgroundColor: !startLocation?.link ? '#cccccc' : '#4285F4',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    fontSize: '0.9rem',
+            </div>
+
+            {/* Destination Section */}
+            <div style={{ marginBottom: '32px' }}>
+              <h3 style={{
+                fontSize: '1.125rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '16px',
+                marginTop: '0',
+              }}>
+                Destination
+              </h3>
+              
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
+                <div style={{ flex: '1', minWidth: '280px' }}>
+                  <LocationDropdown
+                    label="Select Destination From List"
+                    placeholder="Search destinations..."
+                    value={selectedDestination}
+                    onChange={handleDestinationChange}
+                    onValidityChange={setIsDestinationValid}
+                  />
+                </div>
+                
+                {/* Pick Destination Button */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '100px' }}>
+                  <span style={{ 
+                    fontSize: '0.75rem', 
+                    marginBottom: '8px', 
+                    color: '#6b7280', 
                     fontWeight: '500',
-                    cursor: !startLocation?.link ? 'not-allowed' : 'pointer',
-                    transition: 'background-color 0.2s ease-in-out',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 36,
-                    height: 36,
-                  }}
-                  onMouseOver={(e) => {
-                    if (startLocation?.link) {
-                      e.currentTarget.style.backgroundColor = '#3367d6';
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (startLocation?.link) {
-                      e.currentTarget.style.backgroundColor = '#4285F4';
-                    }
-                  }}
-                >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                </button>
-                {showTooltip && (
-                  <div
+                    textAlign: 'center',
+                    lineHeight: '1.2'
+                  }}>
+                    Pick Destination On Map
+                  </span>
+                  <button
+                    aria-label="Pick destination on map"
+                    onClick={() => {
+                      if(pickMode == "destination") {
+                        setPickMode(null)
+                      } else {
+                        setPickMode("destination")
+                      }
+                    }}
+                    onMouseEnter={() => setShowPickDestinationTooltip(true)}
+                    onMouseLeave={() => setShowPickDestinationTooltip(false)}
                     style={{
-                      position: 'absolute',
-                      bottom: '-30px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                      color: 'white',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      fontSize: '0.75rem',
-                      whiteSpace: 'nowrap',
-                      pointerEvents: 'none',
-                      zIndex: 1000,
+                      background: pickMode === "destination" ? '#3b82f6' : '#f8fafc',
+                      border: pickMode === "destination" ? '2px solid #3b82f6' : '2px solid #e2e8f0',
+                      borderRadius: '8px',
+                      width: '48px',
+                      height: '48px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      color: pickMode === "destination" ? 'white' : '#64748b',
+                      transition: 'all 0.2s ease-in-out',
+                      boxShadow: pickMode === "destination" ? '0 4px 12px rgba(59, 130, 246, 0.3)' : '0 1px 3px rgba(0, 0, 0, 0.1)',
+                    }}
+                    onMouseOver={(e) => {
+                      if (pickMode !== "destination") {
+                        e.currentTarget.style.backgroundColor = '#f1f5f9';
+                        e.currentTarget.style.borderColor = '#cbd5e1';
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      if (pickMode !== "destination") {
+                        e.currentTarget.style.backgroundColor = '#f8fafc';
+                        e.currentTarget.style.borderColor = '#e2e8f0';
+                      }
                     }}
                   >
-                    Open starting
-                    <br />
-                    location in
-                    <br />
-                    google maps
-                  </div>
-                )}
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="2" x2="12" y2="6" />
+                      <line x1="12" y1="18" x2="12" y2="22" />
+                      <line x1="2" y1="12" x2="6" y2="12" />
+                      <line x1="18" y1="12" x2="22" y2="12" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  </button>
+                  {showPickDestinationTooltip && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: '-40px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        backgroundColor: '#1f2937',
+                        color: 'white',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        whiteSpace: 'nowrap',
+                        pointerEvents: 'none',
+                        zIndex: 1000,
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                      }}
+                    >
+                      Pick destination on map
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', gap: '10px' }}>
-              <div style={{ flex: 1 }}>
-                <LocationDropdown
-                  label="Select Destination"
-                  placeholder="Search destinations..."
-                  value={selectedDestination}
-                  onChange={handleDestinationChange}
-                  onValidityChange={setIsDestinationValid}
-                />
-              </div>
-              <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', width: 90 }}>
-                <span style={{ fontSize: '0.8rem', marginBottom: 2, color: '#333', fontWeight: 500 }}>Pick Destination</span>
-                <button
-                  aria-label="Pick destination on map"
-                  onClick={() => {
-                    if(pickMode == "destination") {
-                      setPickMode(null)
-                    } else {
-                      setPickMode("destination")
-                    }
-                  }}
-                  onMouseEnter={() => setShowPickDestinationTooltip(true)}
-                  onMouseLeave={() => setShowPickDestinationTooltip(false)}
+            {/* Route Options Section */}
+            <div style={{ 
+              marginBottom: '20px',
+              padding: '20px',
+              backgroundColor: '#f8fafc',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0',
+            }}>
+              <h3 style={{
+                fontSize: '1.125rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '16px',
+                marginTop: '0',
+              }}>
+                Route Options
+              </h3>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <label
                   style={{
-                    marginLeft: 0,
-                    background: pickMode === "destination" ? '#4285F4' : '#eee',
-                    border: 'none',
-                    borderRadius: '4px',
-                    width: 36,
-                    height: 36,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
+                    gap: '12px',
+                    color: '#374151',
                     cursor: 'pointer',
-                    color: pickMode === "destination" ? 'white' : '#333',
-                    outline: pickMode === "destination" ? '2px solid #4285F4' : 'none',
-                    boxShadow: pickMode === "destination" ? '0 0 0 2px #90caf9' : 'none',
-                    transition: 'background 0.2s, color 0.2s, outline 0.2s',
+                    padding: '8px 0',
                   }}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="2" x2="12" y2="6" />
-                    <line x1="12" y1="18" x2="12" y2="22" />
-                    <line x1="2" y1="12" x2="6" y2="12" />
-                    <line x1="18" y1="12" x2="22" y2="12" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                </button>
-                {showPickDestinationTooltip && (
-                  <div
+                  <input
+                    type="checkbox"
+                    checked={isStepFree}
+                    onChange={(e) => onStepFreeChange(e.target.checked)}
                     style={{
-                      position: 'absolute',
-                      bottom: '-30px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                      width: '20px',
+                      height: '20px',
+                      cursor: 'pointer',
+                      accentColor: '#3b82f6',
+                    }}
+                  />
+                  <span style={{ 
+                    fontWeight: '500',
+                    fontSize: '1rem',
+                  }}>
+                    Stair-free route
+                  </span>
+                </label>
+
+                {/* Clear All Selections Button */}
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '12px',
+                  padding: '8px 0',
+                }}>
+                  <button
+                    onClick={() => {
+                      onSelectedStartChange('');
+                      onSelectedDestinationChange('');
+                      onStartLocationChange(null);
+                      onDestinationLocationChange(null);
+                      onStartPositionChange(null);
+                      onDestinationChange(null);
+                      destinationLocationRef.current = null;
+                      setPickMode(null);
+                      onStepFreeChange(false);
+                      onClearRoute?.();
+                      window.history.replaceState({}, '', window.location.pathname);
+                    }}
+                    style={{
+                      background: '#ef4444',
+                      border: '2px solid #ef4444',
                       color: 'white',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      fontSize: '0.75rem',
-                      whiteSpace: 'nowrap',
-                      pointerEvents: 'none',
-                      zIndex: 1000,
+                      borderRadius: '8px',
+                      padding: '10px 16px',
+                      fontSize: '0.875rem',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease-in-out',
+                      boxShadow: '0 2px 8px rgba(239, 68, 68, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = '#dc2626';
+                      e.currentTarget.style.borderColor = '#dc2626';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = '#ef4444';
+                      e.currentTarget.style.borderColor = '#ef4444';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.2)';
                     }}
                   >
-                    Pick destination
-                    <br />
-                    on map
-                  </div>
-                )}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18" />
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                      <line x1="10" y1="11" x2="10" y2="17" />
+                      <line x1="14" y1="11" x2="14" y2="17" />
+                    </svg>
+                    Clear All Selections
+                  </button>
+                </div>
               </div>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  color: '#333',
-                  cursor: 'pointer',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={isStepFree}
-                  onChange={(e) => onStepFreeChange(e.target.checked)}
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    cursor: 'pointer',
-                  }}
-                />
-                <span style={{ fontWeight: '500' }}>Stair-free route</span>
-              </label>
             </div>
           </div>
         )}

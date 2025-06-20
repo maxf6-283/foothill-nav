@@ -484,6 +484,37 @@ export default function Map() {
     });
   };
 
+  const clearRoute = () => {
+    if (!mapRef.current) return;
+    // Remove existing route layer if it exists
+    if (mapRef.current.getLayer('route-line')) {
+      mapRef.current.removeLayer('route-line');
+    }
+    if (mapRef.current.getSource('route')) {
+      mapRef.current.removeSource('route');
+    }
+
+    // Remove existing popup if it exists
+    if (currentPopupRef.current) {
+      currentPopupRef.current.remove();
+      currentPopupRef.current = null;
+    }
+
+    // Remove existing highlight layer if it exists
+    if (mapRef.current.getLayer('destination-highlight')) {
+      mapRef.current.removeLayer('destination-highlight');
+    }
+    if (mapRef.current.getSource('destination-highlight')) {
+      mapRef.current.removeSource('destination-highlight');
+    }
+
+    // Clear start and end markers
+    updateMarkers(null, null);
+
+    // Clear path error
+    setPathError(null);
+  };
+
   const autoSelectLot = () => {
     if (!pathfinderRef.current || !destination)
       return;
@@ -904,6 +935,7 @@ export default function Map() {
         pickMode={pickMode}
         setPickMode={setPickMode}
         destinationLocationRef={destinationLocationRef}
+        onClearRoute={clearRoute}
       />
     </div>
   );
