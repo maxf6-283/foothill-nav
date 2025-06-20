@@ -213,11 +213,19 @@ export default function Map() {
             if (feature.properties.name == destinationLocationRef.current?.name) {
               return true
             }
-            const number = parseInt(destinationLocationRef.current?.name ?? "")
+            let number = parseInt(destinationLocationRef.current?.name ?? "")
+            const match = destinationLocationRef.current?.name.match("\\(([A-Z]+ ?- ?)?(?<num>\\d\\d\\d\\d)")
+            if (match && match.groups) {
+              number = parseInt(match.groups.num)
+            }
             if (number) {
               const match = feature.properties.name.toString().match("(\\d\\d\\d\\d)-(\\d\\d\\d\\d)")
-              if(match) {
-                return match[1] <= number && number <= match[2]
+              if (match) {
+                return match[1] <= number && number - 999 <= match[2]
+              }
+              const num = feature.properties.name.toString().match("\\d\\d\\d\\d")
+              if (num) {
+                return num <= number && number - 999 <= num
               }
             }
           }

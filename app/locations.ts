@@ -207,10 +207,123 @@ export const locations: Location[] = [
     ],
   },
   {
+    name: "Admissions and Records (8101)",
+    coordinates: [
+      [-122.1275238, 37.3602521]
+    ],
+  },
+  {
+    name: "Associated Students of Foothill College (ASFC - 2011)",
+    coordinates: [
+      [-122.12753, 37.3617888]
+    ],
+  },
+  {
+    name: "Bookstore (2301)",
+    coordinates: [
+      [-122.12727361719868, 37.36219933662029]
+    ],
+  },
+  {
+    name: "Cafe - PSEC (4400)",
+    coordinates: [
+      [-122.13170651896753, 37.3615288786545]
+    ],
+  },
+  {
+    name: "Cafe - 6000",
+    coordinates: [
+      [-122.12851621900369, 37.360638065661675]
+    ],
+  },
+  {
+    name: "Campus Center (2000-2100)",
+    coordinates: [
+      [-122.1274885, 37.3617307],
+      [-122.12753, 37.3617888],
+      [-122.1277239, 37.3620675],
+      [-122.12754945433343, 37.362139104735874]
+    ],
+  },
+  {
+    name: "Campus Center Plaza",
+    coordinates: [
+      [-122.12749488205311, 37.36216314072129],
+      [-122.1273005, 37.362279],
+      [-122.12742332716672, 37.362193752367936]
+    ],
+  },
+  {
+    name: "Cesar Chavez Plaza",
+    coordinates: [
+      [-122.1278617, 37.3620082],
+      [-122.1278957, 37.3619514]
+    ],
+  },
+  {
+    name: "Counseling Division (8301)",
+    coordinates: [
+      [-122.12767090367176, 37.36035284151379]
+    ],
+  },
+  {
+    name: "Disability Resource Center (DRC - 5400)",
+    coordinates: [
+      [-122.1299046, 37.360981],
+      [-122.13017425942456, 37.36086846853697],
+      [-122.1302042, 37.3608561],
+      [-122.1304167, 37.3610833],
+      [-122.1304373, 37.3611893],
+      [-122.1301077, 37.3613235]
+    ],
+  },
+  {
+    name: "Fitness Center Cardio / Spin Room (2506)",
+    coordinates: [
+      [-122.12660434231093, 37.363291890565534]
+    ],
+  },
+  {
+    name: "Food Services / Cafeteria (2211)",
+    coordinates: [
+      [-122.12716905232138, 37.36188077523882]
+    ],
+  },
+  {
+    name: "Football Field",
+    coordinates: [
+      [-122.1246129, 37.360648]
+    ],
+  },
+  {
     name: "Foothill College Observatory",
     coordinates: [
       [-122.1318169, 37.3629361]
     ],
+  },
+  {
+    name: "Group Exercise (2504)",
+    coordinates: [
+      [-122.1260168, 37.3634822]
+    ]
+  },
+  {
+    name: "Gymnasium - Main (2601)",
+    coordinates: [
+      [-122.12580470734864, 37.36288403285633]
+    ]
+  },
+  {
+    name: "Gymnasium - Small (2501)",
+    coordinates: [
+      [-122.12616989508604, 37.36320574536958]
+    ]
+  },
+  {
+    name: "Health Services / Health Counseling (2126)",
+    coordinates: [
+      [-122.12741431289724, 37.36204598732406]
+    ]
   },
   {
     name: "Hubert H. Semans Library (3500)",
@@ -225,7 +338,26 @@ export const locations: Location[] = [
     ],
   },
   {
-    name: "Lohman Theatre",
+    name: "Library Quad",
+    coordinates: [
+      [-122.1288711, 37.3611651],
+      [-122.12905936475453, 37.361423759264866]
+    ],
+  },
+  {
+    name: "Locker Room - Women (2801)",
+    coordinates: [
+      [-122.12582292082308, 37.36351477467519]
+    ],
+  },
+  {
+    name: "Locker Room - Men (2823)",
+    coordinates: [
+      [-122.12557916623396, 37.36321982158209]
+    ],
+  },
+  {
+    name: "Lohman Theatre (8000)",
     coordinates: [
       [-122.1279447, 37.3600048],
       [-122.1278142, 37.359985],
@@ -234,9 +366,28 @@ export const locations: Location[] = [
     ],
   },
   {
-    name: "Science Space Center and Krause Center for Innovation (4000)",
+    name: "Police (2103)",
+    coordinates: [
+      [-122.12736347644082, 37.36197792701199]
+    ],
+  },
+  {
+    name: "Pool",
+    coordinates: [
+      [-122.12585858279554, 37.36325928713231],
+      [-122.12567955461118, 37.36304545962328]
+    ],
+  },
+  {
+    name: "Science Space Center and Krause Center for Innovation (KCI - 4000)",
     coordinates: [
       [-122.1314652, 37.3629183]
+    ]
+  },
+  {
+    name: "Soccer Field",
+    coordinates: [
+      [-122.1325951, 37.3615157]
     ]
   },
   {
@@ -323,15 +474,6 @@ export const locations: Location[] = [
       [-122.12762698043738, 37.36089631855813],
       [-122.12736608990467, 37.36101535566935],
       [-122.12720292618293, 37.36078511919008]
-    ],
-  },
-  {
-    name: "Campus Center (2000-2100)",
-    coordinates: [
-      [-122.1274885, 37.3617307],
-      [-122.12753, 37.3617888],
-      [-122.1277239, 37.3620675],
-      [-122.12754945433343, 37.362139104735874]
     ],
   },
   {
@@ -595,17 +737,6 @@ export const locations: Location[] = [
       [-122.1292607, 37.3611938],
       [-122.1291067, 37.3609707],
       [-122.1295147, 37.3607881]
-    ],
-  },
-  {
-    name: "5400",
-    coordinates: [
-      [-122.1299046, 37.360981],
-      [-122.13017425942456, 37.36086846853697],
-      [-122.1302042, 37.3608561],
-      [-122.1304167, 37.3610833],
-      [-122.1304373, 37.3611893],
-      [-122.1301077, 37.3613235]
     ],
   },
   {

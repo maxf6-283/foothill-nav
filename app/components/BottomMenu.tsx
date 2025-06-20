@@ -61,10 +61,10 @@ function LocationDropdown({
         coordinates: null,
         disabled: isUserInCampus === false || isUserInCampus === null
       }, ...locations.map(loc => ({ ...loc, disabled: false }))].filter(location =>
-        location.name.toLowerCase().includes(searchQuery.toLowerCase())
+        location.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
       ) :
       locations.map(loc => ({ ...loc, disabled: false })).filter(location =>
-        location.name.toLowerCase().includes(searchQuery.toLowerCase())
+        location.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
       )
     ) : 
     (includeCurrentLocation ? 
