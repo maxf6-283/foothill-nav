@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, RefObject } from 'react';
 import { locations, Location } from '../locations';
 
 interface LocationDropdownProps {
@@ -262,11 +262,11 @@ interface BottomMenuProps {
   onSelectedDestinationChange: (destination: string) => void;
   selectedStart: string;
   onSelectedStartChange: (destination: string) => void;
-  isGoDisabled: boolean;
   isUserInCampus: boolean | null;
   onAutoSelectLot: () => void;
   pickMode: null | "destination" | "start";
   setPickMode: (mode: null | "destination" | "start") => void;
+  destinationLocationRef: RefObject<Location | null>
 }
 
 export default function BottomMenu({ 
@@ -284,11 +284,11 @@ export default function BottomMenu({
   onSelectedDestinationChange,
   selectedStart,
   onSelectedStartChange,
-  isGoDisabled,
   isUserInCampus,
   onAutoSelectLot,
   pickMode,
-  setPickMode
+  setPickMode,
+  destinationLocationRef
 }: BottomMenuProps) {
   const [isStartValid, setIsStartValid] = useState(true);
   const [isDestinationValid, setIsDestinationValid] = useState(true);
@@ -301,7 +301,8 @@ export default function BottomMenu({
     onSelectedDestinationChange(value);
     const location = locations.find(loc => loc.name === value);
     onDestinationChange(location ? location.coordinates : null);
-    onDestinationLocationChange(location ? location : null);
+    onDestinationLocationChange(location ?? null);
+    destinationLocationRef.current = location ?? null
   };
   
   const handleStartLocationChange = (value: string) => {
@@ -692,50 +693,6 @@ export default function BottomMenu({
                 <span style={{ fontWeight: '500' }}>Step-free route</span>
               </label>
             </div>
-
-            <div style={{ 
-              padding: '15px',
-              backgroundColor: '#f5f5f5',
-              borderRadius: '4px',
-              color: '#666'
-            }}>
-              <p>Select a destination from the dropdown above to get directions.</p>
-              {isStepFree && (
-                <p style={{ marginTop: '8px', color: '#2c5282' }}>
-                  Step-free route enabled - will avoid stairs and steps
-                </p>
-              )}
-            </div>
-
-            <button
-              onClick={onGoClick}
-              disabled={isGoDisabled || !isStartValid || !isDestinationValid || !isCurrentLocationValid}
-              style={{
-                width: '100%',
-                padding: '12px',
-                backgroundColor: (isGoDisabled || !isStartValid || !isDestinationValid || !isCurrentLocationValid) ? '#cccccc' : '#4CAF50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '1rem',
-                fontWeight: '600',
-                cursor: (isGoDisabled || !isStartValid || !isDestinationValid || !isCurrentLocationValid) ? 'not-allowed' : 'pointer',
-                marginTop: '20px',
-                transition: 'background-color 0.2s ease-in-out',
-              }}
-              onMouseOver={(e) => {
-                if (!isGoDisabled && isStartValid && isDestinationValid && isCurrentLocationValid) {
-                  e.currentTarget.style.backgroundColor = '#45a049';
-                }
-              }}
-              onMouseOut={(e) => {
-                if (!isGoDisabled && isStartValid && isDestinationValid && isCurrentLocationValid) {
-                  e.currentTarget.style.backgroundColor = '#4CAF50';
-                }
-              }}
-            >
-              Go
-            </button>
           </div>
         )}
       </div>
