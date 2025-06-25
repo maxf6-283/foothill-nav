@@ -177,7 +177,7 @@ export default function Map() {
     }
   };
 
-  const addRoute = (startPoint: [number, number] | null, endPoint: [number, number] | null, path: Path<Feature<Geometry, GeoJsonProperties>> | undefined) => {
+  const addRoute = (startPoint: [number, number] | null, endPoint: [number, number] | null, path: Path<Feature<Geometry, GeoJsonProperties>> | undefined, zoom?: boolean) => {
     if (!mapRef.current)
       return
 
@@ -302,16 +302,18 @@ export default function Map() {
       // Store the popup reference
       currentPopupRef.current = popup;
 
+      if(zoom != false) {
+        const bounds = path.path.reduce((bounds, coord) => {
+          return bounds.extend(coord as [number, number]);
+        }, new maplibregl.LngLatBounds(path.path[0] as [number, number], path.path[0] as [number, number]));
+  
+        mapRef.current.fitBounds(bounds, {
+          padding: 100,
+          maxZoom: 18,
+          duration: 1000
+        });
+      }
       // Fit map to route bounds
-      const bounds = path.path.reduce((bounds, coord) => {
-        return bounds.extend(coord as [number, number]);
-      }, new maplibregl.LngLatBounds(path.path[0] as [number, number], path.path[0] as [number, number]));
-
-      mapRef.current.fitBounds(bounds, {
-        padding: 100,
-        maxZoom: 18,
-        duration: 1000
-      });
     } else {
       setPathError("No viable path found between the selected locations");
     }
@@ -410,7 +412,7 @@ export default function Map() {
     }
   }
 
-  const calculatePath = () => {
+  const calculatePath = (zoom?: boolean) => {
     if (!mapRef.current || !pathfinderRef.current || !destinationRef.current || (!startPositionRef.current && !userLocationRef.current)) {
       setPathError("Please select a destination");
       console.log("destinationRef: ", destinationRef)
@@ -422,7 +424,7 @@ export default function Map() {
 
     const {path, startPoint, endPoint} = getBestPath(destinationRef.current, startPositionRef.current, userLocationRef.current)
 
-    addRoute(startPoint, endPoint, path)
+    addRoute(startPoint, endPoint, path, zoom)
   };
 
   // Function to check if a point is inside the campus
@@ -876,7 +878,7 @@ export default function Map() {
   useEffect(() => {
     userLocationRef.current = userLocation
     if(destinationLocationRef.current && !startPositionRef.current && (userLocationRef.current && isUserInCampus)) {
-      calculatePath()
+      calculatePath(false)
     }
   }, [userLocation])
   useEffect(() => {
