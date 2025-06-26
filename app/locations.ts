@@ -402,6 +402,12 @@ export const locations: Location[] = [
     ]
   },
   {
+    name: "Teaching and Learning Center",
+    coordinates: [
+      [-122.1296306052345, 37.36233449638382]
+    ]
+  },
+  {
     name: "D100",
     coordinates: [
       [-122.1253808, 37.3611988]

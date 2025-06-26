@@ -631,7 +631,7 @@ export default function Map() {
     });
     // Add click handler
     map.on("click", (e) => {
-      if(pickModeRef.current)
+      if(process.env.NODE_ENV == "production" || pickModeRef.current)
         return
       const lineFeatures = dataRef.current?.features.filter(
         feature => feature.geometry.type === 'LineString'
