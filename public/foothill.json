@@ -312,7 +312,8 @@
           ]
         ],
         "type": "Polygon"
-      }
+      },
+      "id": 2
     },
     {
       "type": "Feature",
@@ -959,8 +960,8 @@
             37.361999286839634
           ],
           [
-            -122.12650942551133,
-            37.36206218938254
+            -122.12651546048167,
+            37.36205979103508
           ]
         ],
         "type": "LineString"
@@ -7197,7 +7198,8 @@
       "type": "Feature",
       "properties": {
         "@id": "way/380976986",
-        "building": "yes"
+        "building": "yes",
+        "name": "Plant Services (D160)"
       },
       "geometry": {
         "coordinates": [
@@ -7305,7 +7307,8 @@
           ]
         ],
         "type": "Polygon"
-      }
+      },
+      "id": 170
     },
     {
       "type": "Feature",
@@ -9885,6 +9888,21 @@
           [
             -122.127307,
             37.363796
+          ]
+         ],
+        "type": "LineString"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "highway": "steep road"
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            -122.127307,
+            37.363796
           ],
           [
             -122.1271308,
@@ -9926,6 +9944,21 @@
             -122.126078,
             37.3636822
           ],
+          [
+            -122.1260149,
+            37.3636113
+          ]
+         ],
+        "type": "LineString"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "highway": "service"
+      },
+      "geometry": {
+        "coordinates": [
           [
             -122.1260149,
             37.3636113
@@ -10646,6 +10679,10 @@
           [
             -122.1263908,
             37.3621924
+          ],
+          [
+            -122.12645837837748,
+            37.362120297308145
           ],
           [
             -122.1264874,
@@ -18471,6 +18508,21 @@
             -122.1273487,
             37.3638375
           ],
+          [
+            -122.1273081,
+            37.3638375
+          ]
+        ],
+        "type": "LineString"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "highway": "steep footway"
+      },
+      "geometry": {
+        "coordinates": [
           [
             -122.1273081,
             37.3638375
@@ -26608,6 +26660,43 @@
         ],
         "type": "LineString"
       }
+    },
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "coordinates": [
+          [
+            -122.1267527968819,
+            37.36246599653943
+          ],
+          [
+            -122.12647899066071,
+            37.362135857878684
+          ]
+        ],
+        "type": "LineString"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "foot": "yes"
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            -122.12647888744542,
+            37.36213561204603
+          ],
+          [
+            -122.12645843560146,
+            37.36212068900906
+          ]
+        ],
+        "type": "LineString"
+      },
+      "id": 733
     }
   ]
 }

@@ -837,6 +837,9 @@ export default function Map() {
         else if (properties.elevator === "yes") {
           return isStepFree ? 30 : 75
         }
+        else if (properties.highway === "steep road") {
+          return (isStepFree ? 2000 : 2) * distance;
+        }
         return 2 * distance;
       }
     });

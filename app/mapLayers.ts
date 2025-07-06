@@ -203,7 +203,11 @@ export const addMapLayers = (map: MapLibreMap, data: FeatureCollection, path?: {
     filter: [
       "all",
       ["==", ["geometry-type"], "LineString"],
-      ["==", ["get", "highway"], "service"],
+      [
+        "any", 
+        ["==", ["get", "highway"], "service"],
+        ["==", ["get", "highway"], "steep road"],
+      ]
     ],
   });
 
