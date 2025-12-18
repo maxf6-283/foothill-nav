@@ -13,7 +13,7 @@
     "@vercel/analytics": "^1.5.0",
     "geojson-path-finder": "^2.0.2",
     "maplibre-gl": "^5.5.0",
-    "next": "15.3.2",
+    "next": "15.3.8",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
