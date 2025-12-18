@@ -307,10 +307,20 @@ export default function Map() {
           return bounds.extend(coord as [number, number]);
         }, new maplibregl.LngLatBounds(path.path[0] as [number, number], path.path[0] as [number, number]));
   
+        const start = path.path.at(0);
+        const end = path.path.at(-1);
+
+        const bearing =
+          -90 -
+          (Math.atan2(start[1] - end[1], start[0] - end[0]) / Math.PI) * 180;
+
+        console.log("Bearing!!!!: ", bearing);
+
         mapRef.current.fitBounds(bounds, {
           padding: 100,
           maxZoom: 18,
-          duration: 1000
+          duration: 1000,
+          bearing: bearing,
         });
       }
       // Fit map to route bounds
