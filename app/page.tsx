@@ -760,7 +760,8 @@ export default function Map() {
         let errorMessage = "Error getting location: ";
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage += "Please allow location access in your browser settings";
+            errorMessage +=
+              'Please allow location access in your browser settings. Enable location services in "privacy and security", then select your browser, choosing to allow "while you are using the app".';
             break;
           case error.POSITION_UNAVAILABLE:
             errorMessage += "Location information is unavailable. Please check your device's location services";
